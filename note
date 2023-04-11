@@ -1,0 +1,180 @@
++++++ OpenAirInterface +++++
+
+oai di eugenio è abbastanza aggiornata (1 dec 2022) branch gbr-sps-xapp
+
+-> vedere modifiche fatte da eugenio per implementare e2 agent (sono poche)
+  -> o uso direttamente oai di eugenio ma lui fa cose che non mi interessano
+  -> o prendo oai develop plain, faccio modifiche e uso quello
+
+--------------------------------------------------------------------------------------------------------------------------------------------------
+
++++++ xApp +++++
+
++++ base-xapp è la partenza per xapp
+
+ base-xapp si connette a xapp-sm-connector ? (che si connette al ric)
+
+    -> # write "INDICATION_REQUEST" master message
+    master_mess = RAN_message() # create master message
+    master_mess.msg_type = RAN_message_type.INDICATION_REQUEST # set message type as specificed in enums.proto
+
+    -> # write "INDICATION_REQUEST" inner message
+    inner_mess = RAN_indication_request() # create inner message
+    inner_mess.target_params.extend([RAN_parameter.GNB_ID, RAN_parameter.SOMETHING]) # set target parameters as specified in enums.proto
+
+    -> # li serializza come stringa
+    buf = master_mess.SerializeToString() # serialize master message to string
+
+    -> li invia a xapp-sm-connector ?
+    UDPClientSocketOut = socket.socket(family=socket.AF_INET, type=socket.SOCK_DGRAM) # create socket
+    UDPClientSocketOut.sendto(buf, ("127.0.0.1",7000)) # send string to socket
+
+    -> #apre una socket sulla porta 4200 (dovrebbe parlare con e2-agent di oai) e loopa
+    control_sck = xapp_control.open_control_socket(4200)
+    
+    -> se riceve dati "data_sck" sulla socket di controllo "control_sck" li parsa (string to response message)
+    
+    resp = RAN_indication_response() # create response message
+    resp.ParseFromString(data_sck) # parse string to response message
+    
+    -> qui si implementa la logica della xapp, in questo caso semplicemnte risponde con roba random
+        -> creo msg master RAN_message
+        master_mess = RAN_message() # create master message
+        master_mess.msg_type = RAN_message_type.CONTROL # set message type as specificed in enums.proto
+        inner_mess = RAN_control_request() # create inner message
+
+        -> creo i 2 control element RAN_param_map_entry (key-> value) del messaggio inner 
+
+        # gnb id control element 
+        # create RAN_param_map_entry control element, which is a key-value pair 
+        # -> key is RAN_parameter data = GNB_ID or SOMETHING
+        # -> value is the actual value of the parameter
+
+        gnb_id_control_element = RAN_param_map_entry() 
+        gnb_id_control_element.key = RAN_parameter.GNB_ID
+        gnb_id_control_element.value = str(randint(1,10))
+
+        # something control element
+        something_control_element = RAN_param_map_entry()
+        something_control_element.key = RAN_parameter.SOMETHING
+        something_control_element.value = str(randint(1,10))
+
+        -> concateno i 2 control element e creo il msg inner
+
+        #target_param_map is a list of RAN_param_map_entry control elements
+        inner_mess.target_param_map.extend([gnb_id_control_element, something_control_element]) #
+        master_mess.ran_control_request.CopyFrom(inner_mess)
+
+    
+        -> serializzo il master msg con dentro inner msg creato e lo invio alla socket di controllo
+        ctrl_buf = master_mess.SerializeToString()
+        xapp_control.send_socket(control_sck, ctrl_buf)
+    
+
++++ NB 
+
+    in base alla tipologia di msg master
+
+    enum RAN_message_type{
+        SUBSCRIPTION = 1;
+        INDICATION_REQUEST = 2;
+        INDICATION_RESPONSE = 3;
+        CONTROL = 4;
+        SOMETHING_ELSE = 5;
+    } 
+
+    l'inner msg deve avere i seguenti payload
+
+    message RAN_message{
+        required RAN_message_type msg_type = 1;
+        oneof payload{
+            RAN_indication_request ran_indication_request = 2;
+            RAN_indication_response ran_indication_response = 3;
+            RAN_control_request ran_control_request = 4;
+        }
+    }
+
+    enum RAN_parameter{
+        GNB_ID = 1;
+        SOMETHING = 2;
+    }
+
+    message RAN_param_map_entry{
+        required RAN_parameter key = 1;
+        required string value = 2;
+    }
+
+    /* RAN SUBMESSAGES */
+    message RAN_indication_request{
+        repeated RAN_parameter target_params = 1;
+    }
+
+    message RAN_indication_response{
+        repeated RAN_param_map_entry param_map = 1;
+    }
+
+    message RAN_control_request{
+        repeated RAN_param_map_entry target_param_map = 1;
+    }
+
+--------------------------------------------------------------------------------------------------------------------------------------------------
+
+flusso logico
+
+sm-connector implementa e2ap
+la xapp logic è scritta in python ed implementa e2sm
+
++++ -> la xapp logic si connette a sm connector sulla porta 7000
+sulla porta 7000 sm connector attende che la logic invii un buffer da iniettare nella e2ap sub request che fa all’inizio a tutte le gnb
+
++++ xapp -> gnb
+1 Logic invia i buffer sm al socket 4200
+2 sm connector incapsula questo buffer in una e2ap control request
+3 il ric consegna il pacchetto e2ap alla gnb. 
+
++++ gnb -> xapp
+1.1 e2 agent in gnb crea un buffer e2sm 
+    openair2/E2_AGENT/e2_message_handlers.c ->build_indication_response() -> ran_read() è responsabile di creare il buffer di risposta e2sm
+1.2 e lo invia a e2sim 
+    openair2/E2_AGENT/e2_message_handlers.c -> build_indication_response() -> sendto() è responsabile di rispondere alla indication request, invia il buffer di risposta a e2sim
+2 e2sim lo impacchetta in un e2ap indication
+3 il ric consegna indication a sm connector
+4 sm connector estrae il buffer e2sm e lo invia alla logic sul socket 4200
+
+
++++ gbr_control_xapp è la xapp di eugenio
+
+    -> si connette a xapp-sm-connector ? (che si connette al ric)
+
+    -> # write "INDICATION_REQUEST" master message
+    master_mess = RAN_message() # create master message
+    master_mess.msg_type = RAN_message_type.INDICATION_REQUEST # set message type as specificed in enums.proto
+
+    -> # write "INDICATION_REQUEST" inner message
+    inner_mess = RAN_indication_request() # create inner message
+    inner_mess.target_params.extend([RAN_parameter.GNB_ID, RAN_parameter.UE_LIST]) # set target parameters (key delle cose che voglio dalla bs) as specified in ran_messages.proto
+
+    -> # li serializza come stringa
+    buf = master_mess.SerializeToString() # serialize master message to string
+
+    -> li invia a xapp-sm-connector
+    UDPClientSocketOut = socket.socket(family=socket.AF_INET, type=socket.SOCK_DGRAM) # create socket
+    UDPClientSocketOut.sendto(buf, ("127.0.0.1",7000))
+
+    -> #apre una socket sulla porta 4200 (dovrebbe parlare con e2-agent di oai) e loopa
+    control_sck = open_control_socket(4200)
+
+    -> # loopa finchè non riceve qualcosa sulla socket di controllo
+    while True:
+        data_sck = receive_from_socket(control_sck)
+    
+    -> # parse string to response message
+    resp = RAN_indication_response()
+    resp.ParseFromString(data_sck)
+
+    -> # crea nuova richiesta di controllo
+    control_buf = gbr_control_interactive()
+        -> chiede cose all'utente, e impacchetta il tutto in un master_msg(inner_msg), lo reliazzia e poi lo invia sulla 4200 al sm connector
+    send_socket(control_sck, control_buf)
+
+
