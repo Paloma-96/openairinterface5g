@@ -37,7 +37,7 @@
 #include "PHY/defs_UE.h"
 #include "PHY/phy_extern_ue.h"
 //#include "executables/nr-uesoftmodem.h"
-#include "targets/RT/USER/lte-softmodem.h"
+#include "executables/lte-softmodem.h"
 
 #include "PHY/LTE_UE_TRANSPORT/transport_proto_ue.h"
 #include "SCHED_UE/sched_UE.h"
@@ -68,7 +68,7 @@
 
 #define NS_PER_SLOT 500000
 
-char mode_string[4][20] = {"NOT SYNCHED","PRACH","RAR","PUSCH"};
+static const char mode_string[4][20] = {"NOT SYNCHED","PRACH","RAR","PUSCH"};
 
 extern double cpuf;
 

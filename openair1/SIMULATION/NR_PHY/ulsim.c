@@ -29,12 +29,13 @@
 #include "common/config/config_userapi.h"
 #include "common/utils/LOG/log.h"
 #include "common/utils/nr/nr_common.h"
+#include "common/utils/var_array.h"
 #include "PHY/defs_gNB.h"
 #include "PHY/defs_nr_common.h"
 #include "PHY/defs_nr_UE.h"
 #include "PHY/phy_vars_nr_ue.h"
 #include "PHY/types.h"
-#include "PHY/INIT/phy_init.h"
+#include "PHY/INIT/nr_phy_init.h"
 #include "PHY/MODULATION/modulation_UE.h"
 #include "PHY/MODULATION/nr_modulation.h"
 #include "PHY/NR_REFSIG/dmrs_nr.h"
@@ -53,7 +54,6 @@
 #include "openair1/SIMULATION/RF/rf.h"
 #include "openair1/SIMULATION/NR_PHY/nr_unitary_defs.h"
 #include "openair2/RRC/NR/MESSAGES/asn1_msg.h"
-//#include "openair1/SIMULATION/NR_PHY/nr_dummy_functions.c"
 #include "openair2/LAYER2/NR_MAC_UE/mac_proto.h"
 #include "openair2/LAYER2/NR_MAC_gNB/mac_proto.h"
 #include "common/utils/threadPool/thread-pool.h"
@@ -61,7 +61,6 @@
 #define inMicroS(a) (((double)(a))/(get_cpu_freq_GHz()*1000.0))
 #include "SIMULATION/LTE_PHY/common_sim.h"
 
-#include <openair2/LAYER2/MAC/mac_vars.h>
 #include <openair2/RRC/LTE/rrc_vars.h>
 
 #include <executables/softmodem-common.h>
@@ -75,9 +74,6 @@ const char *__asan_default_options()
   /* don't do leak checking in nr_ulsim, not finished yet */
   return "detect_leaks=0";
 }
-
-LCHAN_DESC DCCH_LCHAN_DESC,DTCH_DL_LCHAN_DESC,DTCH_UL_LCHAN_DESC;
-rlc_info_t Rlc_info_um,Rlc_info_am_config;
 
 PHY_VARS_gNB *gNB;
 PHY_VARS_NR_UE *UE;
@@ -97,117 +93,13 @@ nfapi_ue_release_request_body_t release_rntis;
 //Fixme: Uniq dirty DU instance, by global var, datamodel need better management
 instance_t DUuniqInstance=0;
 instance_t CUuniqInstance=0;
-teid_t newGtpuCreateTunnel(instance_t instance,
-                           rnti_t rnti,
-                           int incoming_bearer_id,
-                           int outgoing_bearer_id,
-                           teid_t outgoing_teid,
-                           int qfi,
-                           transport_layer_addr_t remoteAddr,
-                           int port,
-                           gtpCallback callBack,
-                           gtpCallbackSDAP callBackSDAP) {
-  return 0;
-}
 
-int newGtpuDeleteAllTunnels(instance_t instance, rnti_t rnti) {
+int nr_derive_key_ng_ran_star(uint16_t pci, uint64_t nr_arfcn_dl, const uint8_t key[32], uint8_t *key_ng_ran_star)
+{
   return 0;
 }
 
 extern void fix_scd(NR_ServingCellConfig_t *scd);// forward declaration
-
-int8_t nr_mac_rrc_data_ind_ue(const module_id_t module_id,
-                              const int CC_id,
-                              const uint8_t gNB_index,
-                              const frame_t frame,
-                              const sub_frame_t sub_frame,
-                              const rnti_t rnti,
-                              const channel_t channel,
-                              const uint8_t* pduP,
-                              const sdu_size_t pdu_len)
-{
-  return 0;
-}
-
-int generate_dlsch_header(unsigned char *mac_header,
-                          unsigned char num_sdus,
-                          unsigned short *sdu_lengths,
-                          unsigned char *sdu_lcids,
-                          unsigned char drx_cmd,
-                          unsigned short timing_advance_cmd,
-                          unsigned char *ue_cont_res_id,
-                          unsigned char short_padding,
-                          unsigned short post_padding){return 0;}
-
-void
-rrc_data_ind(
-  const protocol_ctxt_t *const ctxt_pP,
-  const rb_id_t                Srb_id,
-  const sdu_size_t             sdu_sizeP,
-  const uint8_t   *const       buffer_pP
-)
-{
-}
-
-
-int
-gtpv1u_create_s1u_tunnel(
-  const instance_t                              instanceP,
-  const gtpv1u_enb_create_tunnel_req_t *const  create_tunnel_req_pP,
-  gtpv1u_enb_create_tunnel_resp_t *const create_tunnel_resp_pP
-) {
-  return 0;
-}
-
-int gtpv1u_delete_s1u_tunnel(const instance_t instance, const gtpv1u_enb_delete_tunnel_req_t *const req_pP) {
-  return 0;
-}
-
-int gtpv1u_delete_ngu_tunnel( const instance_t instance,
-			      gtpv1u_gnb_delete_tunnel_req_t *req) {
-  return 0;
-}
-
-int
-rrc_gNB_process_GTPV1U_CREATE_TUNNEL_RESP(
-  const protocol_ctxt_t *const ctxt_pP,
-  const gtpv1u_enb_create_tunnel_resp_t *const create_tunnel_resp_pP,
-  uint8_t                         *inde_list
-) {
-  return 0;
-}
-
-int
-gtpv1u_create_ngu_tunnel(
-  const instance_t instanceP,
-  const gtpv1u_gnb_create_tunnel_req_t *  const create_tunnel_req_pP,
-        gtpv1u_gnb_create_tunnel_resp_t * const create_tunnel_resp_pP){
-  return 0;
-}
-
-int
-gtpv1u_update_ngu_tunnel(
-  const instance_t                              instanceP,
-  const gtpv1u_gnb_create_tunnel_req_t *const  create_tunnel_req_pP,
-  const rnti_t                                  prior_rnti
-){
-  return 0;
-}
-
-int
-nr_rrc_gNB_process_GTPV1U_CREATE_TUNNEL_RESP(
-  const protocol_ctxt_t *const ctxt_pP,
-  const gtpv1u_gnb_create_tunnel_resp_t *const create_tunnel_resp_pP,
-  uint8_t                         *inde_list
-){
-  return 0;
-}
-
-// Dummy function to avoid linking error at compilation of nr-ulsim
-int is_x2ap_enabled(void)
-{
-  return 0;
-}
 
 void nr_rrc_ue_generate_RRCSetupRequest(module_id_t module_id, const uint8_t gNB_index)
 {
@@ -224,6 +116,10 @@ int8_t nr_mac_rrc_data_req_ue(const module_id_t Mod_idP,
   return 0;
 }
 
+int8_t nr_rrc_RA_succeeded(const module_id_t mod_id, const uint8_t gNB_index) {
+  return 0;
+}
+
 int DU_send_INITIAL_UL_RRC_MESSAGE_TRANSFER(module_id_t     module_idP,
                                             int             CC_idP,
                                             int             UE_id,
@@ -236,18 +132,6 @@ int DU_send_INITIAL_UL_RRC_MESSAGE_TRANSFER(module_id_t     module_idP,
 }
 
 nr_bler_struct nr_bler_data[NR_NUM_MCS];
-
-//nFAPI P7 dummy functions
-
-int oai_nfapi_dl_tti_req(nfapi_nr_dl_tti_request_t *dl_config_req) { return(0);  }
-int oai_nfapi_tx_data_req(nfapi_nr_tx_data_request_t *tx_data_req){ return(0);  }
-int oai_nfapi_ul_dci_req(nfapi_nr_ul_dci_request_t *ul_dci_req){ return(0);  }
-int oai_nfapi_ul_tti_req(nfapi_nr_ul_tti_request_t *ul_tti_req){ return(0);  }
-int oai_nfapi_nr_rx_data_indication(nfapi_nr_rx_data_indication_t *ind) { return(0);  }
-int oai_nfapi_nr_crc_indication(nfapi_nr_crc_indication_t *ind) { return(0);  }
-int oai_nfapi_nr_srs_indication(nfapi_nr_srs_indication_t *ind) { return(0);  }
-int oai_nfapi_nr_uci_indication(nfapi_nr_uci_indication_t *ind) { return(0);  }
-int oai_nfapi_nr_rach_indication(nfapi_nr_rach_indication_t *ind) { return(0);  }
 
 int nr_derive_key(int alg_type, uint8_t alg_id,
                const uint8_t key[32], uint8_t **out)
@@ -267,6 +151,7 @@ uint16_t n_rnti = 0x1234;
 openair0_config_t openair0_cfg[MAX_CARDS];
 
 channel_desc_t *UE2gNB[NUMBER_OF_UE_MAX][NUMBER_OF_gNB_MAX];
+int NB_UE_INST = 1;
 
 int main(int argc, char **argv)
 {
@@ -278,6 +163,7 @@ int main(int argc, char **argv)
   double snr_step = .2;
   uint8_t snr1set = 0;
   int slot = 8, frame = 1;
+  int do_SRS = 0;
   FILE *output_fd = NULL;
   double **s_re,**s_im,**r_re,**r_im;
   //uint8_t write_output_file = 0;
@@ -294,8 +180,6 @@ int main(int argc, char **argv)
   corr_level_t corr_level = CORR_LEVEL_LOW;
   uint16_t N_RB_DL = 106, N_RB_UL = 106, mu = 1;
 
-  NB_UE_INST = 1;
-
   //unsigned char frame_type = 0;
   NR_DL_FRAME_PARMS *frame_parms;
   int loglvl = OAILOG_WARNING;
@@ -304,11 +188,10 @@ int main(int argc, char **argv)
   uint16_t nb_rb = 50;
   int Imcs = 9;
   uint8_t precod_nbr_layers = 1;
-  int gNB_id = 0;
   int tx_offset;
   int32_t txlev_sum = 0, atxlev[4];
   int start_rb = 0;
-  int UE_id =0; // [hna] only works for UE_id = 0 because NUMBER_OF_NR_UE_MAX is set to 1 (phy_init_nr_gNB causes segmentation fault)
+  int UE_id = 0;
   int print_perf = 0;
   cpuf = get_cpu_freq_GHz();
   int msg3_flag = 0;
@@ -320,7 +203,6 @@ int main(int argc, char **argv)
   int ldpc_offload_flag = 0;
   uint8_t max_rounds = 4;
   int chest_type[2] = {0};
-
   int enable_ptrs = 0;
   int modify_dmrs = 0;
   /* L_PTRS = ptrs_arg[0], K_PTRS = ptrs_arg[1] */
@@ -355,7 +237,7 @@ int main(int argc, char **argv)
   /* initialize the sin-cos table */
    InitSinLUT();
 
-  while ((c = getopt(argc, argv, "a:b:c:d:ef:g:h:i:kl:m:n:op:q:r:s:t:u:v:w:y:z:C:F:G:H:I:M:N:PR:S:T:U:L:ZW:")) != -1) {
+  while ((c = getopt(argc, argv, "a:b:c:d:ef:g:h:i:kl:m:n:op:q:r:s:t:u:v:w:y:z:C:F:G:H:I:M:N:PR:S:T:U:L:ZW:E:")) != -1) {
     printf("handling optarg %c\n",c);
     switch (c) {
 
@@ -435,6 +317,10 @@ int main(int argc, char **argv)
         }
       }
 
+      if (optarg[3] == ',') {
+        maxDoppler = atoi(&optarg[4]);
+        printf("Maximum Doppler Frequency: %.0f Hz\n", maxDoppler);
+      }
       break;
       
     case 'i':
@@ -615,13 +501,25 @@ int main(int argc, char **argv)
       printf("NOTE: TRANSFORM PRECODING (SC-FDMA) is ENABLED in UPLINK (0 - ENABLE, 1 - DISABLE) : %d \n", transform_precoding);
       break;
 
+    case 'E':
+      do_SRS = atoi(optarg);
+      if (do_SRS == 0) {
+        printf("SRS disabled\n");
+      } else if (do_SRS == 1) {
+        printf("SRS enabled\n");
+      } else {
+        printf("Invalid SRS option. SRS disabled.\n");
+        do_SRS = 0;
+      }
+      break;
+
     default:
     case 'h':
       printf("%s -h(elp) -p(extended_prefix) -N cell_id -f output_filename -F input_filename -g channel_model -i Intefrence0 -j Interference1 -n n_frames -s snr0 -S snr1 -t Delayspread -x transmission_mode -y TXant -z RXant -A interpolation_file -C(alibration offset dB) -N CellId -Z Enable SC-FDMA in Uplink \n", argv[0]);
       //printf("-d Use TDD\n");
       printf("-d Introduce delay in terms of number of samples\n");
       printf("-f Number of frames to simulate\n");
-      printf("-g Channel model configuration. Arguments list: Number of arguments = 2, {Channel model: [A] TDLA30, [B] TDLB100, [C] TDLC300}, {Correlation: [l] Low, [m] Medium, [h] High}, e.g. -g A,l\n");
+      printf("-g Channel model configuration. Arguments list: Number of arguments = 3, {Channel model: [A] TDLA30, [B] TDLB100, [C] TDLC300}, {Correlation: [l] Low, [m] Medium, [h] High}, {Maximum Doppler shift} e.g. -g A,l,10\n");
       printf("-h This message\n");
       printf("-i Change channel estimation technique. Arguments list: Number of arguments=2, Frequency domain {0:Linear interpolation, 1:PRB based averaging}, Time domain {0:Estimates of last DMRS symbol, 1:Average of DMRS symbols}. e.g. -i 1,0\n");
       //printf("-j Relative strength of second intefering eNB (in dB) - cell_id mod 3 = 2\n");
@@ -656,6 +554,7 @@ int main(int argc, char **argv)
       printf("-Q If -F used, read parameters from file\n");
       printf("-Z If -Z is used, SC-FDMA or transform precoding is enabled in Uplink \n");
       printf("-W Num of layer for PUSCH\n");
+      printf("-E {SRS: [0] Disabled, [1] Enabled} e.g. -E 1\n");
       exit(-1);
       break;
 
@@ -682,26 +581,6 @@ int main(int argc, char **argv)
                         &samples,
                         &tx_bandwidth,
                         &rx_bandwidth);
-
-  LOG_I( PHY,"++++++++++++++++++++++++++++++++++++++++++++++%i+++++++++++++++++++++++++++++++++++++++++",loglvl);  
-
-  UE2gNB = new_channel_desc_scm(n_tx,
-                                n_rx, channel_model,
-                                sampling_frequency/1e6,
-                                tx_bandwidth,
-                                DS_TDL,
-                                corr_level,
-                                0,
-                                0,
-                                0,
-                                0);
-
-  if (UE2gNB == NULL) {
-    printf("Problem generating channel model. Exiting.\n");
-    exit(-1);
-  }
-
-  UE2gNB->max_Doppler = maxDoppler;
 
   RC.gNB = (PHY_VARS_gNB **) malloc(sizeof(PHY_VARS_gNB *));
   RC.gNB[0] = calloc(1,sizeof(PHY_VARS_gNB));
@@ -779,10 +658,10 @@ int main(int argc, char **argv)
 
   gNB->if_inst->NR_PHY_config_req = nr_phy_config_request;
   // common configuration
-  rrc_mac_config_req_gNB(0, conf.pdsch_AntennaPorts, n_rx, 0, 6, scc, &rrc.carrier.mib, rrc.carrier.siblock1, 0, 0, NULL);
+  nr_mac_config_scc(RC.nrmac[0], conf.pdsch_AntennaPorts, n_tx, 0, 6, scc);
+  nr_mac_config_mib(RC.nrmac[0], &rrc.carrier.mib);
   // UE dedicated configuration
-  rrc_mac_config_req_gNB(0, conf.pdsch_AntennaPorts, n_rx, 0, 6, scc, &rrc.carrier.mib, rrc.carrier.siblock1, 1,
-                         secondaryCellGroup->spCellConfig->reconfigurationWithSync->newUE_Identity, secondaryCellGroup);
+  nr_mac_add_test_ue(RC.nrmac[0], secondaryCellGroup->spCellConfig->reconfigurationWithSync->newUE_Identity, secondaryCellGroup);
   frame_parms->nb_antennas_tx = 1;
   frame_parms->nb_antennas_rx = n_rx;
   nfapi_nr_config_request_scf_t *cfg = &gNB->gNB_config;
@@ -794,7 +673,7 @@ int main(int argc, char **argv)
   gNB->chest_freq = chest_type[0];
   gNB->chest_time = chest_type[1];
 
-  phy_init_nr_gNB(gNB,0,1);
+  phy_init_nr_gNB(gNB);
   /* RU handles rxdataF, and gNB just has a pointer. Here, we don't have an RU,
    * so we need to allocate that memory as well. */
   for (i = 0; i < n_rx; i++)
@@ -809,8 +688,27 @@ int main(int argc, char **argv)
 
   NR_BWP_Uplink_t *ubwp=secondaryCellGroup->spCellConfig->spCellConfigDedicated->uplinkConfig->uplinkBWP_ToAddModList->list.array[0];
 
+  // Configure channel model
+  UE2gNB = new_channel_desc_scm(n_tx,
+                                n_rx,
+                                channel_model,
+                                sampling_frequency / 1e6,
+                                frame_parms->ul_CarrierFreq,
+                                tx_bandwidth,
+                                DS_TDL,
+                                maxDoppler,
+                                corr_level,
+                                0,
+                                delay,
+                                0,
+                                0);
 
-  //configure UE
+  if (UE2gNB == NULL) {
+    printf("Problem generating channel model. Exiting.\n");
+    exit(-1);
+  }
+
+  // Configure UE
   UE = malloc(sizeof(PHY_VARS_NR_UE));
   memset((void*)UE,0,sizeof(PHY_VARS_NR_UE));
   PHY_vars_UE_g = malloc(sizeof(PHY_VARS_NR_UE**));
@@ -858,15 +756,13 @@ int main(int argc, char **argv)
 
   unsigned char harq_pid = 0;
 
-  NR_gNB_ULSCH_t *ulsch_gNB = gNB->ulsch[UE_id];
+  NR_gNB_ULSCH_t *ulsch_gNB = &gNB->ulsch[UE_id];
 
-  //nfapi_nr_ul_config_ulsch_pdu *rel15_ul = &ulsch_gNB->harq_processes[harq_pid]->ulsch_pdu;
-  nfapi_nr_ul_tti_request_t     *UL_tti_req  = malloc(sizeof(*UL_tti_req));
+  // nfapi_nr_ul_config_ulsch_pdu *rel15_ul = &ulsch_gNB->harq_process->ulsch_pdu;
   NR_Sched_Rsp_t *Sched_INFO = malloc(sizeof(*Sched_INFO));
   memset((void*)Sched_INFO,0,sizeof(*Sched_INFO));
-  Sched_INFO->UL_tti_req=UL_tti_req;
-
-  nfapi_nr_pusch_pdu_t  *pusch_pdu = &UL_tti_req->pdus_list[0].pusch_pdu;
+  nfapi_nr_ul_tti_request_t *UL_tti_req = &Sched_INFO->UL_tti_req;
+  Sched_INFO->sched_response_id = -1;
 
   nr_phy_data_tx_t phy_data = {0};
 
@@ -1079,6 +975,14 @@ int main(int argc, char **argv)
     reset_meas(&UE->ulsch_rate_matching_stats);
     reset_meas(&UE->ulsch_interleaving_stats);
     reset_meas(&UE->ulsch_encoding_stats);
+    reset_meas(&gNB->rx_srs_stats);
+    reset_meas(&gNB->generate_srs_stats);
+    reset_meas(&gNB->get_srs_signal_stats);
+    reset_meas(&gNB->srs_channel_estimation_stats);
+    reset_meas(&gNB->srs_timing_advance_stats);
+    reset_meas(&gNB->srs_report_tlv_stats);
+    reset_meas(&gNB->srs_beam_report_stats);
+    reset_meas(&gNB->srs_iq_matrix_stats);
 
     uint32_t errors_scrambling[16] = {0};
     int n_errors[16] = {0};
@@ -1086,24 +990,33 @@ int main(int argc, char **argv)
     double blerStats[16] = {0};
     double berStats[16] = {0};
 
-    clear_pusch_stats(gNB);
+    uint64_t sum_pusch_delay = 0;
+    int min_pusch_delay = INT_MAX;
+    int max_pusch_delay = INT_MIN;
+    int delay_pusch_est_count = 0;
+
     for (trial = 0; trial < n_trials; trial++) {
+
       uint8_t round = 0;
       crc_status = 1;
       errors_decoding = 0;
+
       while (round < max_rounds && crc_status) {
+
         round_trials[round]++;
-        UE->ul_harq_processes[harq_pid].round = round;
         rv_index = nr_rv_round_map[round % 4];
 
-        UE_proc.nr_slot_tx = slot;
-        UE_proc.frame_tx = frame;
+        /// gNB UL PDUs
 
         UL_tti_req->SFN = frame;
         UL_tti_req->Slot = slot;
-        UL_tti_req->n_pdus = 1;
-        UL_tti_req->pdus_list[0].pdu_type = NFAPI_NR_UL_CONFIG_PUSCH_PDU_TYPE;
-        UL_tti_req->pdus_list[0].pdu_size = sizeof(nfapi_nr_pusch_pdu_t);
+        UL_tti_req->n_pdus = do_SRS == 1 ? 2 : 1;
+
+        nfapi_nr_ul_tti_request_number_of_pdus_t *pdu_element0 = &UL_tti_req->pdus_list[0];
+        pdu_element0->pdu_type = NFAPI_NR_UL_CONFIG_PUSCH_PDU_TYPE;
+        pdu_element0->pdu_size = sizeof(nfapi_nr_pusch_pdu_t);
+
+        nfapi_nr_pusch_pdu_t *pusch_pdu = &pdu_element0->pusch_pdu;
         memset(pusch_pdu, 0, sizeof(nfapi_nr_pusch_pdu_t));
 
         int abwp_size = NRRIV2BW(ubwp->bwp_Common->genericParameters.locationAndBandwidth, 275);
@@ -1165,6 +1078,42 @@ int main(int argc, char **argv)
           pusch_pdu->num_dmrs_cdm_grps_no_data = num_dmrs_cdm_grps_no_data;
         }
 
+        if (do_SRS == 1) {
+          const uint16_t m_SRS[64] = { 4, 8, 12, 16, 16, 20, 24, 24, 28, 32, 36, 40, 48, 48, 52, 56, 60, 64, 72, 72, 76, 80, 88,
+                                      96, 96, 104, 112, 120, 120, 120, 128, 128, 128, 132, 136, 144, 144, 144, 144, 152, 160,
+                                      160, 160, 168, 176, 184, 192, 192, 192, 192, 208, 216, 224, 240, 240, 240, 240, 256, 256,
+                                      256, 264, 272, 272, 272 };
+          nfapi_nr_ul_tti_request_number_of_pdus_t *pdu_element1 = &UL_tti_req->pdus_list[1];
+          pdu_element1->pdu_type = NFAPI_NR_UL_CONFIG_SRS_PDU_TYPE;
+          pdu_element1->pdu_size = sizeof(nfapi_nr_srs_pdu_t);
+          nfapi_nr_srs_pdu_t *srs_pdu = &pdu_element1->srs_pdu;
+          memset(srs_pdu, 0, sizeof(nfapi_nr_srs_pdu_t));
+          srs_pdu->rnti = n_rnti;
+          srs_pdu->bwp_size = NRRIV2BW(ubwp->bwp_Common->genericParameters.locationAndBandwidth, 275);
+          srs_pdu->bwp_start = NRRIV2PRBOFFSET(ubwp->bwp_Common->genericParameters.locationAndBandwidth, 275);
+          srs_pdu->subcarrier_spacing = frame_parms->subcarrier_spacing;
+          srs_pdu->num_ant_ports = n_tx == 4 ? 2 : n_tx == 2 ? 1 : 0;
+          srs_pdu->sequence_id = 40;
+          srs_pdu->config_index = rrc_get_max_nr_csrs(srs_pdu->bwp_size, srs_pdu->bandwidth_index);
+          srs_pdu->resource_type = NR_SRS_Resource__resourceType_PR_periodic;
+          srs_pdu->t_srs = 1;
+          srs_pdu->srs_parameters_v4.srs_bandwidth_size = m_SRS[srs_pdu->config_index];
+          srs_pdu->srs_parameters_v4.usage = 1 << NR_SRS_ResourceSet__usage_codebook;
+          srs_pdu->srs_parameters_v4.report_type[0] = 1;
+          srs_pdu->srs_parameters_v4.iq_representation = 1;
+          srs_pdu->srs_parameters_v4.prg_size = 1;
+          srs_pdu->srs_parameters_v4.num_total_ue_antennas = 1 << srs_pdu->num_ant_ports;
+          srs_pdu->beamforming.num_prgs = m_SRS[srs_pdu->config_index];
+          srs_pdu->beamforming.prg_size = 1;
+        }
+
+        /// UE UL PDUs
+
+        UE->ul_harq_processes[harq_pid].round = round;
+        UE_proc.nr_slot_tx = slot;
+        UE_proc.frame_tx = frame;
+        UE_proc.gNB_id = 0;
+
         // prepare ULSCH/PUSCH reception
         pushNotifiedFIFO(&gNB->L1_tx_free, msgL1Tx); // to unblock the process in the beginning
         nr_schedule_response(Sched_INFO);
@@ -1183,57 +1132,71 @@ int main(int argc, char **argv)
         // Config UL TX PDU
         tx_req.slot = slot;
         tx_req.sfn = frame;
-        // tx_req->tx_config // TbD
-        tx_req.number_of_pdus = 1;
+        tx_req.number_of_pdus = 1; //do_SRS == 1 ? 2 : 1;
+
         tx_req.tx_request_body[0].pdu_length = TBS / 8;
         tx_req.tx_request_body[0].pdu_index = 0;
         tx_req.tx_request_body[0].pdu = &ulsch_input_buffer[0];
 
         ul_config.slot = slot;
-        ul_config.number_pdus = 1;
-        ul_config.ul_config_list[0].pdu_type = FAPI_NR_UL_CONFIG_TYPE_PUSCH;
-        ul_config.ul_config_list[0].pusch_config_pdu.rnti = n_rnti;
-        ul_config.ul_config_list[0].pusch_config_pdu.pdu_bit_map = pdu_bit_map;
-        ul_config.ul_config_list[0].pusch_config_pdu.qam_mod_order = mod_order;
-        ul_config.ul_config_list[0].pusch_config_pdu.rb_size = nb_rb;
-        ul_config.ul_config_list[0].pusch_config_pdu.rb_start = start_rb;
-        ul_config.ul_config_list[0].pusch_config_pdu.nr_of_symbols = nb_symb_sch;
-        ul_config.ul_config_list[0].pusch_config_pdu.start_symbol_index = start_symbol;
-        ul_config.ul_config_list[0].pusch_config_pdu.ul_dmrs_symb_pos = l_prime_mask;
-        ul_config.ul_config_list[0].pusch_config_pdu.dmrs_config_type = dmrs_config_type;
-        ul_config.ul_config_list[0].pusch_config_pdu.mcs_index = Imcs;
-        ul_config.ul_config_list[0].pusch_config_pdu.mcs_table = mcs_table;
-        ul_config.ul_config_list[0].pusch_config_pdu.num_dmrs_cdm_grps_no_data = num_dmrs_cdm_grps_no_data;
-        ul_config.ul_config_list[0].pusch_config_pdu.nrOfLayers = precod_nbr_layers;
-        ul_config.ul_config_list[0].pusch_config_pdu.dmrs_ports = ((1 << precod_nbr_layers) - 1);
-        ul_config.ul_config_list[0].pusch_config_pdu.absolute_delta_PUSCH = 0;
-        ul_config.ul_config_list[0].pusch_config_pdu.target_code_rate = code_rate;
-        ul_config.ul_config_list[0].pusch_config_pdu.tbslbrm = tbslbrm;
+        ul_config.number_pdus = do_SRS == 1 ? 2 : 1;
 
-        ul_config.ul_config_list[0].pusch_config_pdu.pusch_data.tb_size = TBS / 8;
-        ul_config.ul_config_list[0].pusch_config_pdu.pusch_data.new_data_indicator = trial & 0x1;
-        ul_config.ul_config_list[0].pusch_config_pdu.pusch_data.rv_index = rv_index;
-        ul_config.ul_config_list[0].pusch_config_pdu.pusch_data.harq_process_id = harq_pid;
-
-        ul_config.ul_config_list[0].pusch_config_pdu.pusch_ptrs.ptrs_time_density = ptrs_time_density;
-        ul_config.ul_config_list[0].pusch_config_pdu.pusch_ptrs.ptrs_freq_density = ptrs_freq_density;
-        ul_config.ul_config_list[0].pusch_config_pdu.pusch_ptrs.ptrs_ports_list = (nfapi_nr_ue_ptrs_ports_t *)malloc(2 * sizeof(nfapi_nr_ue_ptrs_ports_t));
-        ul_config.ul_config_list[0].pusch_config_pdu.pusch_ptrs.ptrs_ports_list[0].ptrs_re_offset = 0;
-
-        ul_config.ul_config_list[0].pusch_config_pdu.transform_precoding = transform_precoding;
-
+        fapi_nr_ul_config_request_pdu_t *ul_config0 = &ul_config.ul_config_list[0];
+        ul_config0->pdu_type = FAPI_NR_UL_CONFIG_TYPE_PUSCH;
+        nfapi_nr_ue_pusch_pdu_t *pusch_config_pdu = &ul_config0->pusch_config_pdu;
+        pusch_config_pdu->rnti = n_rnti;
+        pusch_config_pdu->pdu_bit_map = pdu_bit_map;
+        pusch_config_pdu->qam_mod_order = mod_order;
+        pusch_config_pdu->rb_size = nb_rb;
+        pusch_config_pdu->rb_start = start_rb;
+        pusch_config_pdu->nr_of_symbols = nb_symb_sch;
+        pusch_config_pdu->start_symbol_index = start_symbol;
+        pusch_config_pdu->ul_dmrs_symb_pos = l_prime_mask;
+        pusch_config_pdu->dmrs_config_type = dmrs_config_type;
+        pusch_config_pdu->mcs_index = Imcs;
+        pusch_config_pdu->mcs_table = mcs_table;
+        pusch_config_pdu->num_dmrs_cdm_grps_no_data = num_dmrs_cdm_grps_no_data;
+        pusch_config_pdu->nrOfLayers = precod_nbr_layers;
+        pusch_config_pdu->dmrs_ports = ((1 << precod_nbr_layers) - 1);
+        pusch_config_pdu->absolute_delta_PUSCH = 0;
+        pusch_config_pdu->target_code_rate = code_rate;
+        pusch_config_pdu->tbslbrm = tbslbrm;
+        pusch_config_pdu->pusch_data.tb_size = TBS / 8;
+        pusch_config_pdu->pusch_data.new_data_indicator = trial & 0x1;
+        pusch_config_pdu->pusch_data.rv_index = rv_index;
+        pusch_config_pdu->pusch_data.harq_process_id = harq_pid;
+        pusch_config_pdu->pusch_ptrs.ptrs_time_density = ptrs_time_density;
+        pusch_config_pdu->pusch_ptrs.ptrs_freq_density = ptrs_freq_density;
+        pusch_config_pdu->pusch_ptrs.ptrs_ports_list = (nfapi_nr_ue_ptrs_ports_t *)malloc(2 * sizeof(nfapi_nr_ue_ptrs_ports_t));
+        pusch_config_pdu->pusch_ptrs.ptrs_ports_list[0].ptrs_re_offset = 0;
+        pusch_config_pdu->transform_precoding = transform_precoding;
         // if transform precoding is enabled
         if (transform_precoding == transformPrecoder_enabled) {
-          ul_config.ul_config_list[0].pusch_config_pdu.dfts_ofdm.low_papr_group_number = *scc->physCellId % 30; // U as defined in 38.211 section 6.4.1.1.1.2
-          ul_config.ul_config_list[0].pusch_config_pdu.dfts_ofdm.low_papr_sequence_number = 0; // V as defined in 38.211 section 6.4.1.1.1.2
-          // ul_config.ul_config_list[0].pusch_config_pdu.pdu_bit_map |= PUSCH_PDU_BITMAP_DFTS_OFDM;
-          ul_config.ul_config_list[0].pusch_config_pdu.num_dmrs_cdm_grps_no_data = num_dmrs_cdm_grps_no_data;
+          pusch_config_pdu->dfts_ofdm.low_papr_group_number = *scc->physCellId % 30; // U as defined in 38.211 section 6.4.1.1.1.2
+          pusch_config_pdu->dfts_ofdm.low_papr_sequence_number = 0; // V as defined in 38.211 section 6.4.1.1.1.2
+          // pusch_config_pdu->pdu_bit_map |= PUSCH_PDU_BITMAP_DFTS_OFDM;
+          pusch_config_pdu->num_dmrs_cdm_grps_no_data = num_dmrs_cdm_grps_no_data;
         }
 
-        // nr_fill_ulsch(gNB,frame,slot,pusch_pdu); // Not needed as its its already filled as apart of "nr_schedule_response(Sched_INFO);"
+        if (do_SRS == 1) {
+          fapi_nr_ul_config_request_pdu_t *ul_config1 = &ul_config.ul_config_list[1];
+          ul_config1->pdu_type = FAPI_NR_UL_CONFIG_TYPE_SRS;
+          fapi_nr_ul_config_srs_pdu *srs_config_pdu = &ul_config1->srs_config_pdu;
+          memset(srs_config_pdu, 0, sizeof(fapi_nr_ul_config_srs_pdu));
+          srs_config_pdu->rnti = n_rnti;
+          srs_config_pdu->bwp_size = NRRIV2BW(ubwp->bwp_Common->genericParameters.locationAndBandwidth, 275);
+          srs_config_pdu->bwp_start = NRRIV2PRBOFFSET(ubwp->bwp_Common->genericParameters.locationAndBandwidth, 275);
+          srs_config_pdu->subcarrier_spacing = frame_parms->subcarrier_spacing;
+          srs_config_pdu->num_ant_ports = n_tx == 4 ? 2 : n_tx == 2 ? 1 : 0;
+          srs_config_pdu->config_index = rrc_get_max_nr_csrs(srs_config_pdu->bwp_size, srs_config_pdu->bandwidth_index);
+          srs_config_pdu->sequence_id = 40;
+          srs_config_pdu->resource_type = NR_SRS_Resource__resourceType_PR_periodic;
+          srs_config_pdu->t_srs = 1;
+        }
 
         for (int i = 0; i < (TBS / 8); i++)
           UE->ul_harq_processes[harq_pid].a[i] = i & 0xff;
+
         if (input_fd == NULL) {
           // set FAPI parameters for UE, put them in the scheduled response and call
           nr_ue_scheduled_response(&scheduled_response);
@@ -1241,7 +1204,7 @@ int main(int argc, char **argv)
           /////////////////////////phy_procedures_nr_ue_TX///////////////////////
           ///////////
 
-          phy_procedures_nrUE_TX(UE, &UE_proc, gNB_id, &phy_data);
+          phy_procedures_nrUE_TX(UE, &UE_proc, &phy_data);
 
           if (n_trials == 1) {
             LOG_M("txsig0.m", "txs0", &UE->common_vars.txdata[0][slot_offset], slot_length, 1, 1);
@@ -1262,7 +1225,7 @@ int main(int argc, char **argv)
           tx_offset = frame_parms->get_samples_slot_timestamp(slot, frame_parms, 0);
           txlev_sum = 0;
           for (int aa = 0; aa < UE->frame_parms.nb_antennas_tx; aa++) {
-            atxlev[aa] = signal_energy(&UE->common_vars.txdata[aa][tx_offset + 5 * frame_parms->ofdm_symbol_size + 4 * frame_parms->nb_prefix_samples + frame_parms->nb_prefix_samples0],
+            atxlev[aa] = signal_energy((int32_t*)&UE->common_vars.txdata[aa][tx_offset + 5 * frame_parms->ofdm_symbol_size + 4 * frame_parms->nb_prefix_samples + frame_parms->nb_prefix_samples0],
                                        frame_parms->ofdm_symbol_size + frame_parms->nb_prefix_samples);
 
             txlev_sum += atxlev[aa];
@@ -1277,7 +1240,6 @@ int main(int argc, char **argv)
           // Justification of division by precod_nbr_layers:
           // When the channel is the identity matrix, the results in terms of SNR should be almost equal for 2x2 and 4x4.
           sigma_dB = 10 * log10((double)txlev_sum / precod_nbr_layers * ((double)frame_parms->ofdm_symbol_size / (12 * nb_rb))) - SNR;
-          ;
           sigma = pow(10, sigma_dB / 10);
 
           if (n_trials == 1)
@@ -1290,11 +1252,7 @@ int main(int argc, char **argv)
             }
           }
 
-          if (UE2gNB->max_Doppler == 0) {
-            multipath_channel(UE2gNB, s_re, s_im, r_re, r_im, slot_length, 0, (n_trials==1)?1:0);
-          } else {
-            multipath_tv_channel(UE2gNB, s_re, s_im, r_re, r_im, 2*slot_length, 0);
-          }
+          multipath_channel(UE2gNB, s_re, s_im, r_re, r_im, slot_length, 0, (n_trials == 1) ? 1 : 0);
           add_noise(rxdata, (const double **) r_re, (const double **) r_im, sigma, slot_length, slot_offset, ts, delay, pdu_bit_map, frame_parms->nb_antennas_rx);
 
         } /*End input_fd */
@@ -1311,12 +1269,13 @@ int main(int argc, char **argv)
         //----------------------------------------------------------
         gNB->UL_INFO.rx_ind.number_of_pdus = 0;
         gNB->UL_INFO.crc_ind.number_crcs = 0;
+        gNB->UL_INFO.srs_ind.number_of_pdus = 0;
 
         for(uint8_t symbol = 0; symbol < (gNB->frame_parms.Ncp == EXTENDED ? 12 : 14); symbol++) {
           for (int aa = 0; aa < gNB->frame_parms.nb_antennas_rx; aa++)
             nr_slot_fep_ul(&gNB->frame_parms,
-                           (int32_t*) rxdata[aa],
-                           gNB->common_vars.rxdataF[aa],
+                           (int32_t *)rxdata[aa],
+                           (int32_t *)gNB->common_vars.rxdataF[aa],
                            symbol,
                            slot,
                            0);
@@ -1347,140 +1306,196 @@ int main(int argc, char **argv)
           }
         }
 
+        NR_gNB_PUSCH *pusch_vars = &gNB->pusch_vars[UE_id];
         if (n_trials == 1 && round == 0) {
           __attribute__((unused)) int off = ((nb_rb & 1) == 1) ? 4 : 0;
 
           LOG_M("rxsigF0_ext.m",
                 "rxsF0_ext",
-                &gNB->pusch_vars[0]->rxdataF_ext[0][start_symbol * NR_NB_SC_PER_RB * pusch_pdu->rb_size],
+                &pusch_vars->rxdataF_ext[0][start_symbol * NR_NB_SC_PER_RB * pusch_pdu->rb_size],
                 nb_symb_sch * (off + (NR_NB_SC_PER_RB * pusch_pdu->rb_size)),
                 1,
                 1);
-          LOG_M("chestF0.m", "chF0", &gNB->pusch_vars[0]->ul_ch_estimates[0][start_symbol * frame_parms->ofdm_symbol_size], frame_parms->ofdm_symbol_size, 1, 1);
-          LOG_M("chestT0.m", "chT0", &gNB->pusch_vars[0]->ul_ch_estimates_time[0][0], frame_parms->ofdm_symbol_size, 1, 1);
+          LOG_M("chestF0.m",
+                "chF0",
+                &pusch_vars->ul_ch_estimates[0][start_symbol * frame_parms->ofdm_symbol_size],
+                frame_parms->ofdm_symbol_size,
+                1,
+                1);
+          LOG_M("chestT0.m", "chT0", &pusch_vars->ul_ch_estimates_time[0][0], frame_parms->ofdm_symbol_size, 1, 1);
           LOG_M("chestF0_ext.m",
                 "chF0_ext",
-                &gNB->pusch_vars[0]->ul_ch_estimates_ext[0][(start_symbol + 1) * (off + (NR_NB_SC_PER_RB * pusch_pdu->rb_size))],
+                &pusch_vars->ul_ch_estimates_ext[0][(start_symbol + 1) * (off + (NR_NB_SC_PER_RB * pusch_pdu->rb_size))],
                 (nb_symb_sch - 1) * (off + (NR_NB_SC_PER_RB * pusch_pdu->rb_size)),
                 1,
                 1);
           LOG_M("rxsigF0_comp.m",
                 "rxsF0_comp",
-                &gNB->pusch_vars[0]->rxdataF_comp[0][start_symbol * (off + (NR_NB_SC_PER_RB * pusch_pdu->rb_size))],
+                &pusch_vars->rxdataF_comp[0][start_symbol * (off + (NR_NB_SC_PER_RB * pusch_pdu->rb_size))],
                 nb_symb_sch * (off + (NR_NB_SC_PER_RB * pusch_pdu->rb_size)),
                 1,
                 1);
           LOG_M("chmagF0.m",
                 "chmF0",
-                &gNB->pusch_vars[0]->ul_ch_mag[0][start_symbol * (off + (NR_NB_SC_PER_RB * pusch_pdu->rb_size))],
+                &pusch_vars->ul_ch_mag[0][start_symbol * (off + (NR_NB_SC_PER_RB * pusch_pdu->rb_size))],
                 nb_symb_sch * (off + (NR_NB_SC_PER_RB * pusch_pdu->rb_size)),
                 1,
                 1);
           LOG_M("chmagbF0.m",
                 "chmbF0",
-                &gNB->pusch_vars[0]->ul_ch_magb[0][start_symbol * (off + (NR_NB_SC_PER_RB * pusch_pdu->rb_size))],
+                &pusch_vars->ul_ch_magb[0][start_symbol * (off + (NR_NB_SC_PER_RB * pusch_pdu->rb_size))],
                 nb_symb_sch * (off + (NR_NB_SC_PER_RB * pusch_pdu->rb_size)),
                 1,
                 1);
-          LOG_M("rxsigF0_llrlayers0.m", "rxsF0_llrlayers0", &gNB->pusch_vars[0]->llr_layers[0][0], (nb_symb_sch - 1) * NR_NB_SC_PER_RB * pusch_pdu->rb_size * mod_order, 1, 0);
+          LOG_M("rxsigF0_llrlayers0.m",
+                "rxsF0_llrlayers0",
+                &pusch_vars->llr_layers[0][0],
+                (nb_symb_sch - 1) * NR_NB_SC_PER_RB * pusch_pdu->rb_size * mod_order,
+                1,
+                0);
 
           if (precod_nbr_layers == 2) {
             LOG_M("rxsigF1_ext.m",
                   "rxsF1_ext",
-                  &gNB->pusch_vars[0]->rxdataF_ext[1][start_symbol * NR_NB_SC_PER_RB * pusch_pdu->rb_size],
+                  &pusch_vars->rxdataF_ext[1][start_symbol * NR_NB_SC_PER_RB * pusch_pdu->rb_size],
                   nb_symb_sch * (off + (NR_NB_SC_PER_RB * pusch_pdu->rb_size)),
                   1,
                   1);
 
-            LOG_M("chestF3.m", "chF3", &gNB->pusch_vars[0]->ul_ch_estimates[3][start_symbol * frame_parms->ofdm_symbol_size], frame_parms->ofdm_symbol_size, 1, 1);
+            LOG_M("chestF3.m",
+                  "chF3",
+                  &pusch_vars->ul_ch_estimates[3][start_symbol * frame_parms->ofdm_symbol_size],
+                  frame_parms->ofdm_symbol_size,
+                  1,
+                  1);
 
             LOG_M("chestF3_ext.m",
                   "chF3_ext",
-                  &gNB->pusch_vars[0]->ul_ch_estimates_ext[3][(start_symbol + 1) * (off + (NR_NB_SC_PER_RB * pusch_pdu->rb_size))],
+                  &pusch_vars->ul_ch_estimates_ext[3][(start_symbol + 1) * (off + (NR_NB_SC_PER_RB * pusch_pdu->rb_size))],
                   (nb_symb_sch - 1) * (off + (NR_NB_SC_PER_RB * pusch_pdu->rb_size)),
                   1,
                   1);
 
             LOG_M("rxsigF2_comp.m",
                   "rxsF2_comp",
-                  &gNB->pusch_vars[0]->rxdataF_comp[2][start_symbol * (off + (NR_NB_SC_PER_RB * pusch_pdu->rb_size))],
+                  &pusch_vars->rxdataF_comp[2][start_symbol * (off + (NR_NB_SC_PER_RB * pusch_pdu->rb_size))],
                   nb_symb_sch * (off + (NR_NB_SC_PER_RB * pusch_pdu->rb_size)),
                   1,
                   1);
 
-            LOG_M("rxsigF0_llrlayers1.m", "rxsF0_llrlayers1", &gNB->pusch_vars[0]->llr_layers[1][0], (nb_symb_sch - 1) * NR_NB_SC_PER_RB * pusch_pdu->rb_size * mod_order, 1, 0);
+            LOG_M("rxsigF0_llrlayers1.m",
+                  "rxsF0_llrlayers1",
+                  &pusch_vars->llr_layers[1][0],
+                  (nb_symb_sch - 1) * NR_NB_SC_PER_RB * pusch_pdu->rb_size * mod_order,
+                  1,
+                  0);
           }
 
           if (precod_nbr_layers == 4) {
             LOG_M("rxsigF1_ext.m",
                   "rxsF1_ext",
-                  &gNB->pusch_vars[0]->rxdataF_ext[1][start_symbol * NR_NB_SC_PER_RB * pusch_pdu->rb_size],
+                  &pusch_vars->rxdataF_ext[1][start_symbol * NR_NB_SC_PER_RB * pusch_pdu->rb_size],
                   nb_symb_sch * (off + (NR_NB_SC_PER_RB * pusch_pdu->rb_size)),
                   1,
                   1);
             LOG_M("rxsigF2_ext.m",
                   "rxsF2_ext",
-                  &gNB->pusch_vars[0]->rxdataF_ext[2][start_symbol * NR_NB_SC_PER_RB * pusch_pdu->rb_size],
+                  &pusch_vars->rxdataF_ext[2][start_symbol * NR_NB_SC_PER_RB * pusch_pdu->rb_size],
                   nb_symb_sch * (off + (NR_NB_SC_PER_RB * pusch_pdu->rb_size)),
                   1,
                   1);
             LOG_M("rxsigF3_ext.m",
                   "rxsF3_ext",
-                  &gNB->pusch_vars[0]->rxdataF_ext[3][start_symbol * NR_NB_SC_PER_RB * pusch_pdu->rb_size],
+                  &pusch_vars->rxdataF_ext[3][start_symbol * NR_NB_SC_PER_RB * pusch_pdu->rb_size],
                   nb_symb_sch * (off + (NR_NB_SC_PER_RB * pusch_pdu->rb_size)),
                   1,
                   1);
 
-            LOG_M("chestF5.m", "chF5", &gNB->pusch_vars[0]->ul_ch_estimates[5][start_symbol * frame_parms->ofdm_symbol_size], frame_parms->ofdm_symbol_size, 1, 1);
-            LOG_M("chestF10.m", "chF10", &gNB->pusch_vars[0]->ul_ch_estimates[10][start_symbol * frame_parms->ofdm_symbol_size], frame_parms->ofdm_symbol_size, 1, 1);
-            LOG_M("chestF15.m", "chF15", &gNB->pusch_vars[0]->ul_ch_estimates[15][start_symbol * frame_parms->ofdm_symbol_size], frame_parms->ofdm_symbol_size, 1, 1);
+            LOG_M("chestF5.m",
+                  "chF5",
+                  &pusch_vars->ul_ch_estimates[5][start_symbol * frame_parms->ofdm_symbol_size],
+                  frame_parms->ofdm_symbol_size,
+                  1,
+                  1);
+            LOG_M("chestF10.m",
+                  "chF10",
+                  &pusch_vars->ul_ch_estimates[10][start_symbol * frame_parms->ofdm_symbol_size],
+                  frame_parms->ofdm_symbol_size,
+                  1,
+                  1);
+            LOG_M("chestF15.m",
+                  "chF15",
+                  &pusch_vars->ul_ch_estimates[15][start_symbol * frame_parms->ofdm_symbol_size],
+                  frame_parms->ofdm_symbol_size,
+                  1,
+                  1);
 
             LOG_M("chestF5_ext.m",
                   "chF5_ext",
-                  &gNB->pusch_vars[0]->ul_ch_estimates_ext[5][(start_symbol + 1) * (off + (NR_NB_SC_PER_RB * pusch_pdu->rb_size))],
+                  &pusch_vars->ul_ch_estimates_ext[5][(start_symbol + 1) * (off + (NR_NB_SC_PER_RB * pusch_pdu->rb_size))],
                   (nb_symb_sch - 1) * (off + (NR_NB_SC_PER_RB * pusch_pdu->rb_size)),
                   1,
                   1);
             LOG_M("chestF10_ext.m",
                   "chF10_ext",
-                  &gNB->pusch_vars[0]->ul_ch_estimates_ext[10][(start_symbol + 1) * (off + (NR_NB_SC_PER_RB * pusch_pdu->rb_size))],
+                  &pusch_vars->ul_ch_estimates_ext[10][(start_symbol + 1) * (off + (NR_NB_SC_PER_RB * pusch_pdu->rb_size))],
                   (nb_symb_sch - 1) * (off + (NR_NB_SC_PER_RB * pusch_pdu->rb_size)),
                   1,
                   1);
             LOG_M("chestF15_ext.m",
                   "chF15_ext",
-                  &gNB->pusch_vars[0]->ul_ch_estimates_ext[15][(start_symbol + 1) * (off + (NR_NB_SC_PER_RB * pusch_pdu->rb_size))],
+                  &pusch_vars->ul_ch_estimates_ext[15][(start_symbol + 1) * (off + (NR_NB_SC_PER_RB * pusch_pdu->rb_size))],
                   (nb_symb_sch - 1) * (off + (NR_NB_SC_PER_RB * pusch_pdu->rb_size)),
                   1,
                   1);
 
             LOG_M("rxsigF4_comp.m",
                   "rxsF4_comp",
-                  &gNB->pusch_vars[0]->rxdataF_comp[4][start_symbol * (off + (NR_NB_SC_PER_RB * pusch_pdu->rb_size))],
+                  &pusch_vars->rxdataF_comp[4][start_symbol * (off + (NR_NB_SC_PER_RB * pusch_pdu->rb_size))],
                   nb_symb_sch * (off + (NR_NB_SC_PER_RB * pusch_pdu->rb_size)),
                   1,
                   1);
             LOG_M("rxsigF8_comp.m",
                   "rxsF8_comp",
-                  &gNB->pusch_vars[0]->rxdataF_comp[8][start_symbol * (off + (NR_NB_SC_PER_RB * pusch_pdu->rb_size))],
+                  &pusch_vars->rxdataF_comp[8][start_symbol * (off + (NR_NB_SC_PER_RB * pusch_pdu->rb_size))],
                   nb_symb_sch * (off + (NR_NB_SC_PER_RB * pusch_pdu->rb_size)),
                   1,
                   1);
             LOG_M("rxsigF12_comp.m",
                   "rxsF12_comp",
-                  &gNB->pusch_vars[0]->rxdataF_comp[12][start_symbol * (off + (NR_NB_SC_PER_RB * pusch_pdu->rb_size))],
+                  &pusch_vars->rxdataF_comp[12][start_symbol * (off + (NR_NB_SC_PER_RB * pusch_pdu->rb_size))],
                   nb_symb_sch * (off + (NR_NB_SC_PER_RB * pusch_pdu->rb_size)),
                   1,
                   1);
-            LOG_M("rxsigF0_llrlayers1.m", "rxsF0_llrlayers1", &gNB->pusch_vars[0]->llr_layers[1][0], (nb_symb_sch - 1) * NR_NB_SC_PER_RB * pusch_pdu->rb_size * mod_order, 1, 0);
-            LOG_M("rxsigF0_llrlayers2.m", "rxsF0_llrlayers2", &gNB->pusch_vars[0]->llr_layers[2][0], (nb_symb_sch - 1) * NR_NB_SC_PER_RB * pusch_pdu->rb_size * mod_order, 1, 0);
-            LOG_M("rxsigF0_llrlayers3.m", "rxsF0_llrlayers3", &gNB->pusch_vars[0]->llr_layers[3][0], (nb_symb_sch - 1) * NR_NB_SC_PER_RB * pusch_pdu->rb_size * mod_order, 1, 0);
+            LOG_M("rxsigF0_llrlayers1.m",
+                  "rxsF0_llrlayers1",
+                  &pusch_vars->llr_layers[1][0],
+                  (nb_symb_sch - 1) * NR_NB_SC_PER_RB * pusch_pdu->rb_size * mod_order,
+                  1,
+                  0);
+            LOG_M("rxsigF0_llrlayers2.m",
+                  "rxsF0_llrlayers2",
+                  &pusch_vars->llr_layers[2][0],
+                  (nb_symb_sch - 1) * NR_NB_SC_PER_RB * pusch_pdu->rb_size * mod_order,
+                  1,
+                  0);
+            LOG_M("rxsigF0_llrlayers3.m",
+                  "rxsF0_llrlayers3",
+                  &pusch_vars->llr_layers[3][0],
+                  (nb_symb_sch - 1) * NR_NB_SC_PER_RB * pusch_pdu->rb_size * mod_order,
+                  1,
+                  0);
           }
 
-          LOG_M("rxsigF0_llr.m", "rxsF0_llr", &gNB->pusch_vars[0]->llr[0], precod_nbr_layers * (nb_symb_sch - 1) * NR_NB_SC_PER_RB * pusch_pdu->rb_size * mod_order, 1, 0);
+          LOG_M("rxsigF0_llr.m",
+                "rxsF0_llr",
+                &pusch_vars->llr[0],
+                precod_nbr_layers * (nb_symb_sch - 1) * NR_NB_SC_PER_RB * pusch_pdu->rb_size * mod_order,
+                1,
+                0);
         }
 
-        if ((gNB->ulsch[0]->last_iteration_cnt >= gNB->ulsch[0]->max_ldpc_iterations + 1) || ul_proc_error == 1) {
+        if ((ulsch_gNB->last_iteration_cnt >= ulsch_gNB->max_ldpc_iterations + 1) || ul_proc_error == 1) {
           error_flag = 1;
           n_errors[round]++;
           crc_status = 1;
@@ -1496,7 +1511,7 @@ int main(int argc, char **argv)
         if ((pusch_pdu->pdu_bit_map & PUSCH_PDU_BITMAP_PUSCH_PTRS) && (SNR == snr0) && (trial == 0) && (round == 0)) {
           ptrs_symbols = 0;
           for (int i = pusch_pdu->start_symbol_index; i < pusch_pdu->start_symbol_index + pusch_pdu->nr_of_symbols; i++)
-            ptrs_symbols += ((gNB->pusch_vars[UE_id]->ptrs_symbols) >> i) & 1;
+            ptrs_symbols += ((pusch_vars->ptrs_symbols) >> i) & 1;
 
           /*  2*5*(50/2), for RB = 50,K = 2 for 5 OFDM PTRS symbols */
           available_bits -= 2 * ptrs_symbols * ((nb_rb + ptrs_freq_density - 1) / ptrs_freq_density);
@@ -1504,8 +1519,8 @@ int main(int argc, char **argv)
         }
 
         for (i = 0; i < available_bits; i++) {
-          if (((UE->ul_harq_processes[harq_pid].f[i] == 0) && (gNB->pusch_vars[UE_id]->llr[i] <= 0))
-              || ((UE->ul_harq_processes[harq_pid].f[i] == 1) && (gNB->pusch_vars[UE_id]->llr[i] >= 0))) {
+          if (((UE->ul_harq_processes[harq_pid].f[i] == 0) && (pusch_vars->llr[i] <= 0))
+              || ((UE->ul_harq_processes[harq_pid].f[i] == 1) && (pusch_vars->llr[i] >= 0))) {
             /*if(errors_scrambling == 0)
               printf("\x1B[34m" "[frame %d][trial %d]\t1st bit in error in unscrambling = %d\n" "\x1B[0m", frame, trial, i);*/
             errors_scrambling[round]++;
@@ -1519,8 +1534,7 @@ int main(int argc, char **argv)
       }
 
       for (i = 0; i < TBS; i++) {
-      
-        estimated_output_bit[i] = (ulsch_gNB->harq_processes[harq_pid]->b[i / 8] & (1 << (i & 7))) >> (i & 7);
+        estimated_output_bit[i] = (ulsch_gNB->harq_process->b[i / 8] & (1 << (i & 7))) >> (i & 7);
         test_input_bit[i] = (UE->ul_harq_processes[harq_pid].b[i / 8] & (1 << (i & 7))) >> (i & 7);
       
         if (estimated_output_bit[i] != test_input_bit[i]) {
@@ -1532,12 +1546,12 @@ int main(int argc, char **argv)
       if (n_trials == 1) {
         for (int r = 0; r < UE->ul_harq_processes[harq_pid].C; r++)
           for (int i = 0; i < UE->ul_harq_processes[harq_pid].K >> 3; i++) {
-            if ((UE->ul_harq_processes[harq_pid].c[r][i] ^ ulsch_gNB->harq_processes[harq_pid]->c[r][i]) != 0)
+            if ((UE->ul_harq_processes[harq_pid].c[r][i] ^ ulsch_gNB->harq_process->c[r][i]) != 0)
               printf("************");
             /*printf("r %d: in[%d] %x, out[%d] %x (%x)\n",r,
               i,UE->ul_harq_processes[harq_pid].c[r][i],
-              i,ulsch_gNB->harq_processes[harq_pid]->c[r][i],
-              UE->ul_harq_processes[harq_pid].c[r][i]^ulsch_gNB->harq_processes[harq_pid]->c[r][i]);*/
+              i,ulsch_gNB->harq_process->c[r][i],
+              UE->ul_harq_processes[harq_pid].c[r][i]^ulsch_gNB->harq_process->c[r][i]);*/
           }
       }
       if (errors_decoding > 0 && error_flag == 0) {
@@ -1548,6 +1562,12 @@ int main(int argc, char **argv)
       roundStats += ((float)round);
       if (!crc_status)
         effRate += ((double)TBS) / (double)round;
+
+      sum_pusch_delay += ulsch_gNB->delay.pusch_est_delay;
+      min_pusch_delay = ulsch_gNB->delay.pusch_est_delay < min_pusch_delay ? ulsch_gNB->delay.pusch_est_delay : min_pusch_delay;
+      max_pusch_delay = ulsch_gNB->delay.pusch_est_delay > max_pusch_delay ? ulsch_gNB->delay.pusch_est_delay : max_pusch_delay;
+      delay_pusch_est_count++;
+
     } // trial loop
 
     roundStats/=((float)n_trials);
@@ -1577,6 +1597,12 @@ int main(int argc, char **argv)
       printf(",%e", berStats[r]);
     printf(") Avg round %.2f, Eff Rate %.4f bits/slot, Eff Throughput %.2f, TBS %u bits/slot\n", roundStats,effRate,effTP,TBS);
 
+    printf("DMRS-PUSCH delay estimation: min %i, max %i, average %f\n",
+           min_pusch_delay >> 1, max_pusch_delay >> 1, (double)sum_pusch_delay / (2 * delay_pusch_est_count));
+
+    printf("*****************************************\n");
+    printf("\n");
+
     FILE *fd=fopen("nr_ulsim.log","w");
     if (fd == NULL) {
       printf("Problem with filename %s\n", "nr_ulsim.log");
@@ -1585,9 +1611,6 @@ int main(int argc, char **argv)
     dump_pusch_stats(fd,gNB);
     fclose(fd);
 
-    printf("*****************************************\n");
-    printf("\n");
-    
     if (print_perf==1) {
       printDistribution(&gNB->phy_proc_rx,table_rx,"Total PHY proc rx");
       printStatIndent(&gNB->rx_pusch_stats,"RX PUSCH time");
@@ -1607,6 +1630,14 @@ int main(int argc, char **argv)
       //printStatIndent2(&gNB->ulsch_deinterleaving_stats,"ULSCH deinterleaving");
       //printStatIndent2(&gNB->ulsch_rate_unmatching_stats,"ULSCH rate matching rx");
       //printStatIndent2(&gNB->ulsch_ldpc_decoding_stats,"ULSCH ldpc decoding");
+      printStatIndent(&gNB->rx_srs_stats,"RX SRS time");
+      printStatIndent2(&gNB->generate_srs_stats,"Generate SRS sequence time");
+      printStatIndent2(&gNB->get_srs_signal_stats,"Get SRS signal time");
+      printStatIndent2(&gNB->srs_channel_estimation_stats,"SRS channel estimation time");
+      printStatIndent2(&gNB->srs_timing_advance_stats,"SRS timing advance estimation time");
+      printStatIndent2(&gNB->srs_report_tlv_stats,"SRS report TLV build time");
+      printStatIndent3(&gNB->srs_beam_report_stats,"SRS beam report build time");
+      printStatIndent3(&gNB->srs_iq_matrix_stats,"SRS IQ matrix build time");
       printf("\n");
     }
 

@@ -22,13 +22,13 @@
 # include "intertask_interface.h"
 # include "create_tasks.h"
 # include "common/utils/LOG/log.h"
-# include "targets/RT/USER/lte-softmodem.h"
+# include "executables/lte-softmodem.h"
 # include "common/ran_context.h"
 
     #include "sctp_eNB_task.h"
     #include "x2ap_eNB.h"
     #include "s1ap_eNB.h"
-    #include "gtpv1u_eNB_task.h"
+    #include "openair3/ocp-gtpu/gtp_itf.h"
     #include "m2ap_eNB.h"
     #include "m2ap_MCE.h"
     #include "m3ap_MME.h"
@@ -38,8 +38,6 @@
     #include "lteRALenb.h"
   #endif
   #include "RRC/LTE/rrc_defs.h"
-# include "f1ap_cu_task.h"
-# include "f1ap_du_task.h"
 # include "enb_app.h"
 # include "mce_app.h"
 # include "mme_app.h"
@@ -49,7 +47,6 @@
 
 int create_tasks_mbms(uint32_t enb_nb) {
  // LOG_D(ENB_APP, "%s(enb_nb:%d\n", __FUNCTION__, enb_nb);
- // ngran_node_t type = RC.rrc[0]->node_type;
   AssertFatal(!get_softmodem_params()->nsa, "In NSA mode\n");
   int rc;
 
@@ -80,17 +77,6 @@ int create_tasks_mbms(uint32_t enb_nb) {
     rc = itti_create_task(TASK_GTPV1_U, gtpv1uTask, NULL);
     AssertFatal(rc >= 0, "Create task for GTPV1U failed\n");
     }
-///
-//  if (NODE_IS_CU(type)) {
-//    rc = itti_create_task(TASK_CU_F1, F1AP_CU_task, NULL);
-//    AssertFatal(rc >= 0, "Create task for CU F1AP failed\n");
-//  }
-//
-//  if (NODE_IS_DU(type)) {
-//    rc = itti_create_task(TASK_DU_F1, F1AP_DU_task, NULL);
-//    AssertFatal(rc >= 0, "Create task for DU F1AP failed\n");
-//  }
-//
 
   if (is_m3ap_MCE_enabled()) {
      rc = itti_create_task(TASK_M3AP_MCE, m3ap_MCE_task, NULL);

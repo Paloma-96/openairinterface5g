@@ -32,12 +32,14 @@
 #ifndef __PHY_DEFS_NR_UE__H__
 #define __PHY_DEFS_NR_UE__H__
 
+#ifdef __cplusplus
+#include <atomic>
+#define _Atomic(X) std::atomic< X >
+#endif
 
 #include "defs_nr_common.h"
 #include "CODING/nrPolar_tools/nr_polar_pbch_defs.h"
 
-
-#define _GNU_SOURCE
 #include <stdio.h>
 #include <stdlib.h>
 #include <malloc.h>
@@ -219,23 +221,24 @@ typedef struct {
   /// For IFFT_FPGA this points to the same memory as PHY_vars->tx_vars[a].TX_DMA_BUFFER.
   /// - first index: tx antenna [0..nb_antennas_tx[
   /// - second index: sample [0..FRAME_LENGTH_COMPLEX_SAMPLES[
-  int32_t **txdata;
+  c16_t **txdata;
   /// \brief Holds the transmit data in the frequency domain.
   /// For IFFT_FPGA this points to the same memory as PHY_vars->rx_vars[a].RX_DMA_BUFFER.
   /// - first index: tx antenna [0..nb_antennas_tx[
   /// - second index: sample [0..FRAME_LENGTH_COMPLEX_SAMPLES_NO_PREFIX[
-  int32_t **txdataF;
+  c16_t **txdataF;
 
   /// \brief Holds the received data in time domain.
   /// Should point to the same memory as PHY_vars->rx_vars[a].RX_DMA_BUFFER.
   /// - first index: rx antenna [0..nb_antennas_rx[
   /// - second index: sample [0..2*FRAME_LENGTH_COMPLEX_SAMPLES+2048[
-  int32_t **rxdata;
+  c16_t **rxdata;
 
-  /// \brief Holds the received data in the frequency domain.
+    /// \brief Holds the received data in time domain.
+  /// Should point to the same memory as PHY_vars->rx_vars[a].RX_DMA_BUFFER.
   /// - first index: rx antenna [0..nb_antennas_rx[
-  /// - second index: symbol [0..28*ofdm_symbol_size[
-  int32_t **rxdataF;
+  /// - second index: sample [0..2*FRAME_LENGTH_COMPLEX_SAMPLES+2048[
+  c16_t **rxdataF;
 
   /// holds output of the sync correlator
   int32_t *sync_corr;
@@ -244,97 +247,6 @@ typedef struct {
   /// eNb_id user is synched to
   int32_t eNb_id;
 } NR_UE_COMMON;
-
-typedef struct {
-  /// \brief Received frequency-domain signal after extraction.
-  /// - first index: ? [0..7] (hard coded) FIXME! accessed via \c nb_antennas_rx
-  /// - second index: ? [0..168*N_RB_DL[
-  int32_t **rxdataF_ext;
-  /// \brief Received frequency-domain ue specific pilots.
-  /// - first index: ? [0..7] (hard coded) FIXME! accessed via \c nb_antennas_rx
-  /// - second index: ? [0..12*N_RB_DL[
-  int32_t **rxdataF_uespec_pilots;
-  /// \brief Received frequency-domain signal after extraction and channel compensation.
-  /// - first index: ? [0..7] (hard coded) FIXME! accessed via \c nb_antennas_rx
-  /// - second index: ? [0..168*N_RB_DL[
-  int32_t **rxdataF_comp0;
-  /// \brief Hold the channel estimates in frequency domain.
-  /// - first index: ? [0..7] (hard coded) FIXME! accessed via \c nb_antennas_rx
-  /// - second index: samples? [0..symbols_per_tti*(ofdm_symbol_size+LTE_CE_FILTER_LENGTH)[
-  int32_t **dl_ch_estimates;
-  /// \brief Downlink channel estimates extracted in PRBS.
-  /// - first index: ? [0..7] (hard coded) FIXME! accessed via \c nb_antennas_rx
-  /// - second index: ? [0..168*N_RB_DL[
-  int32_t **dl_ch_estimates_ext;
-  /// \brief Downlink beamforming channel estimates in frequency domain.
-  /// - first index: ? [0..7] (hard coded) FIXME! accessed via \c nb_antennas_rx
-  /// - second index: samples? [0..symbols_per_tti*(ofdm_symbol_size+LTE_CE_FILTER_LENGTH)[
-  int32_t **dl_bf_ch_estimates;
-  /// \brief Downlink beamforming channel estimates.
-  /// - first index: ? [0..7] (hard coded) FIXME! accessed via \c nb_antennas_rx
-  /// - second index: ? [0..168*N_RB_DL[
-  int32_t **dl_bf_ch_estimates_ext;
-  /// \brief Downlink PMIs extracted in PRBS and grouped in subbands.
-  /// - first index: ressource block [0..N_RB_DL[
-  uint8_t *pmi_ext;
-  /// \brief Magnitude of Downlink Channel first layer (16QAM level/First 64QAM level).
-  /// - first index: ? [0..7] (hard coded) FIXME! accessed via \c nb_antennas_rx
-  /// - second index: ? [0..168*N_RB_DL[
-  int32_t **dl_ch_mag0;
-  /// \brief Magnitude of Downlink Channel, first layer (2nd 64QAM level).
-  /// - first index: ? [0..7] (hard coded) FIXME! accessed via \c nb_antennas_rx
-  /// - second index: ? [0..168*N_RB_DL[
-  int32_t **dl_ch_magb0;
-  /// \brief Magnitude of Downlink Channel, first layer (256QAM level).
-  int32_t **dl_ch_magr0;
-  /// \brief Cross-correlation Matrix of the gNB Tx channel signals.
-  /// - first index: aatx*n_rx+aarx for all aatx=[0..n_tx[ and aarx=[0..nb_rx[
-  /// - second index: symbol [0..]
-  int32_t ***rho;
-  /// \brief Pointers to llr vectors (2 TBs).
-  /// - first index: ? [0..1] (hard coded)
-  /// - second index: ? [0..1179743] (hard coded)
-  int16_t *llr[2];
-  /// Pointers to layer llr vectors (4 layers).
-  int16_t *layer_llr[4];
-  /// \f$\log_2(\max|H_i|^2)\f$
-  int16_t log2_maxh;
-  /// \f$\log_2(\max|H_i|^2)\f$ //this is for TM3-4 layer1 channel compensation
-  int16_t log2_maxh0;
-  /// \f$\log_2(\max|H_i|^2)\f$ //this is for TM3-4 layer2 channel commpensation
-  int16_t log2_maxh1;
-  /// \brief LLR shifts for subband scaling.
-  /// - first index: ? [0..168*N_RB_DL[
-  uint8_t *llr_shifts;
-  /// \brief Pointer to LLR shifts.
-  /// - first index: ? [0..168*N_RB_DL[
-  uint8_t *llr_shifts_p;
-  /// \brief Pointers to llr vectors (128-bit alignment).
-  /// - first index: ? [0..0] (hard coded)
-  /// - second index: ? [0..]
-  int16_t **llr128;
-  /// \brief Pointers to llr vectors (128-bit alignment).
-  /// - first index: ? [0..0] (hard coded)
-  /// - second index: ? [0..]
-  int16_t **llr128_2ndstream;
-  //uint32_t *rb_alloc;
-  //uint8_t Qm[2];
-  //MIMO_mode_t mimo_mode;
-  // llr offset per ofdm symbol
-  uint32_t llr_offset[14];
-  // llr length per ofdm symbol
-  uint32_t llr_length[14];
-  // llr offset per ofdm symbol
-  uint32_t dl_valid_re[14];
-  /// \brief Estimated phase error based upon PTRS on each symbol .
-  /// - first index: ? [0..7] Number of Antenna
-  /// - second index: ? [0...14] smybol per slot
-  int32_t **ptrs_phase_per_slot;
-  /// \brief Estimated phase error based upon PTRS on each symbol .
-  /// - first index: ? [0..7] Number of Antenna
-  /// - second index: ? [0...14] smybol per slot
-  int32_t **ptrs_re_per_slot;
-} NR_UE_PDSCH;
 
 #define NR_PRS_IDFT_OVERSAMP_FACTOR 1  // IDFT oversampling factor for NR PRS channel estimates in time domain, ALLOWED value 16x, and 1x is default(ie. IDFT size is frame_params->ofdm_symbol_size)
 typedef struct {
@@ -409,18 +321,8 @@ typedef struct {
 #define PBCH_A 24
 
 typedef struct {
-  /// \brief Total number of PDU errors.
-  uint32_t pdu_errors;
-  /// \brief Total number of PDU errors 128 frames ago.
-  uint32_t pdu_errors_last;
-  /// \brief Total number of consecutive PDU errors.
-  uint32_t pdu_errors_conseq;
-  /// \brief FER (in percent) .
-  //uint32_t pdu_fer;
-} NR_UE_PBCH;
-
-typedef struct {
   int16_t amp;
+  bool active;
   fapi_nr_ul_config_prach_pdu prach_pdu;
 } NR_UE_PRACH;
 
@@ -476,9 +378,6 @@ typedef struct {
   uint8_t CC_id;
   /// \brief Mapping of CC_id antennas to cards
   openair0_rf_map      rf_map;
-  //uint8_t local_flag;
-  /// \brief Indicator of current run mode of UE (normal_txrx, rx_calib_ue, no_L2_connect, debug_prach)
-  runmode_t mode;
   /// \brief Indicator that UE should perform band scanning
   int UE_scan;
   /// \brief Indicator that UE should perform coarse scanning around carrier
@@ -491,8 +390,8 @@ typedef struct {
   int if_freq_off;
   /// \brief Indicator that UE is synchronized to a gNB
   int is_synchronized;
-  /// \brief Indicator that UE lost frame synchronization
-  int lost_sync;
+  /// \brief Target gNB Nid_cell when UE is resynchronizing
+  int target_Nid_cell;
   /// Data structure for UE process scheduling
   UE_nr_proc_t proc;
   /// Flag to indicate the UE shouldn't do timing correction at all
@@ -531,26 +430,21 @@ typedef struct {
   nr_ue_if_module_t *if_inst;
 
   fapi_nr_config_request_t nrUE_config;
+  nr_synch_request_t synch_request;
 
-  NR_UE_PDSCH     *pdsch_vars[NUMBER_OF_CONNECTED_gNB_MAX+1];
-  NR_UE_PBCH      *pbch_vars[NUMBER_OF_CONNECTED_gNB_MAX];
   NR_UE_PRACH     *prach_vars[NUMBER_OF_CONNECTED_gNB_MAX];
   NR_UE_CSI_IM    *csiim_vars[NUMBER_OF_CONNECTED_gNB_MAX];
   NR_UE_CSI_RS    *csirs_vars[NUMBER_OF_CONNECTED_gNB_MAX];
   NR_UE_SRS       *srs_vars[NUMBER_OF_CONNECTED_gNB_MAX];
   NR_UE_PRS       *prs_vars[NR_MAX_PRS_COMB_SIZE];
   uint8_t          prs_active_gNBs;
-  NR_DL_UE_HARQ_t  dl_harq_processes[NR_MAX_NB_LAYERS>4 ? 2:1][NR_MAX_DLSCH_HARQ_PROCESSES];
+  NR_DL_UE_HARQ_t  dl_harq_processes[2][NR_MAX_DLSCH_HARQ_PROCESSES];
   NR_UL_UE_HARQ_t  ul_harq_processes[NR_MAX_ULSCH_HARQ_PROCESSES];
   
   //Paging parameters
   uint32_t              IMSImod1024;
   uint32_t              PF;
   uint32_t              PO;
-
-  UE_MODE_t           UE_mode[NUMBER_OF_CONNECTED_gNB_MAX];
-  /// cell-specific reference symbols
-  //uint32_t lte_gold_table[7][20][2][14];
 
 #if defined(UPGRADE_RAT_NR)
 
@@ -748,8 +642,19 @@ typedef struct {
   SLIST_HEAD(ral_thresholds_lte_poll_s, ral_threshold_phy_t) ral_thresholds_lte_polled[RAL_LINK_PARAM_LTE_MAX];
 #endif
   int dl_errors;
-  int dl_stats[8];
+  _Atomic(int) dl_stats[16];
   void* scopeData;
+  // Pointers to hold PDSCH data only for phy simulators
+  void *phy_sim_rxdataF;
+  void *phy_sim_pdsch_llr;
+  void *phy_sim_pdsch_rxdataF_ext;
+  void *phy_sim_pdsch_rxdataF_comp;
+  void *phy_sim_pdsch_dl_ch_estimates;
+  void *phy_sim_pdsch_dl_ch_estimates_ext;
+  uint8_t *phy_sim_dlsch_b;
+  notifiedFIFO_t phy_config_ind;
+  notifiedFIFO_t *tx_resume_ind_fifo[NR_MAX_SLOTS_PER_FRAME];
+  int tx_wait_for_dlsch[NR_MAX_SLOTS_PER_FRAME];
 } PHY_VARS_NR_UE;
 
 typedef struct nr_phy_data_tx_s {
@@ -759,7 +664,7 @@ typedef struct nr_phy_data_tx_s {
 
 typedef struct nr_phy_data_s {
   NR_UE_PDCCH_CONFIG phy_pdcch_config;
-  NR_UE_DLSCH_t dlsch[NR_MAX_NB_LAYERS>4 ? 2:1];
+  NR_UE_DLSCH_t dlsch[2];
 } nr_phy_data_t;
 /* this structure is used to pass both UE phy vars and
  * proc to the function UE_thread_rxn_txnp4
@@ -767,8 +672,9 @@ typedef struct nr_phy_data_s {
 typedef struct nr_rxtx_thread_data_s {
   UE_nr_rxtx_proc_t proc;
   PHY_VARS_NR_UE    *UE;
-  NR_UE_SCHED_MODE_t ue_sched_mode;
   int writeBlockSize;
+  nr_phy_data_t phy_data;
+  int tx_wait_for_dlsch;
 } nr_rxtx_thread_data_t;
 
 typedef struct LDPCDecode_ue_s {
@@ -794,6 +700,7 @@ typedef struct LDPCDecode_ue_s {
   time_stats_t ts_deinterleave;
   time_stats_t ts_rate_unmatch;
   time_stats_t ts_ldpc_decode;
+  UE_nr_rxtx_proc_t *proc;
 } ldpcDecode_ue_t;
 
 #include "SIMULATION/ETH_TRANSPORT/defs.h"

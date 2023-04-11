@@ -21,7 +21,9 @@
 #include "stddef.h"
 #include "platform_types.h"
 #include "fapi_nr_ue_constants.h"
+#include "PHY/impl_defs_top.h"
 #include "PHY/impl_defs_nr.h"
+#include "common/utils/nr/nr_common.h"
 
 #define NFAPI_UE_MAX_NUM_CB 8
 #define NFAPI_MAX_NUM_UL_PDU 255
@@ -86,10 +88,13 @@ typedef struct {
 typedef struct {
   uint16_t rnti;
   uint8_t dci_format;
+  uint8_t coreset_type;
+  int ss_type;
   // n_CCE index of first CCE for PDCCH reception
   int n_CCE;
   // N_CCE is L, or number of CCEs for DCI
   int N_CCE;
+  int cset_start;
   uint8_t payloadSize;
   uint8_t payloadBits[16] __attribute__((aligned(16))); // will be cast as uint64
 } fapi_nr_dci_indication_pdu_t;
@@ -112,7 +117,8 @@ typedef struct {
 } fapi_nr_pdsch_pdu_t;
 
 typedef struct {
-  uint8_t* pdu;   //  3bytes
+  bool decoded_pdu;
+  uint8_t pdu[3];
   uint8_t additional_bits;
   uint8_t ssb_index;
   uint8_t ssb_length;
@@ -189,8 +195,6 @@ typedef struct {
   uint8_t  restricted_set;
   /// see TS 38.211 (6.3.3.2).
   uint16_t freq_msg1;
-  // When multiple SSBs per RO is configured, this indicates which one is selected in this RO -> this is used to properly compute the PRACH preamble
-  uint8_t ssb_nb_in_ro;
   /// Preamble index for PRACH (0-63)
   uint8_t ra_PreambleIndex;
   /// PRACH TX power (TODO possibly modify to uint)
@@ -388,8 +392,6 @@ typedef struct {
 } fapi_nr_ul_config_request_pdu_t;
 
 typedef struct {
-  //uint16_t sfn;
-  //uint16_t slot;
   uint16_t sfn;
   uint16_t slot;
   uint8_t number_pdus;
@@ -415,14 +417,12 @@ typedef struct {
   uint8_t num_dci_options;  // Num DCIs the UE actually needs to decode (1 or 2)
   uint8_t dci_length_options[2];
   uint8_t dci_format_options[2];
+  uint8_t dci_type_options[2];
 } fapi_nr_dl_config_dci_dl_pdu_rel15_t;
 
 typedef struct {
   fapi_nr_dl_config_dci_dl_pdu_rel15_t dci_config_rel15;
 } fapi_nr_dl_config_dci_pdu;
-typedef struct{
-  uint8_t aperiodicSRS_ResourceTrigger;
-} fapi_nr_dl_srs_config_t;
 
 typedef enum{vrb_to_prb_mapping_non_interleaved = 0, vrb_to_prb_mapping_interleaved = 1} vrb_to_prb_mapping_t;
 
@@ -459,7 +459,6 @@ typedef struct {
   uint16_t dmrs_ports;
   uint8_t n_front_load_symb;
   uint8_t tci_state;
-  fapi_nr_dl_srs_config_t srs_config;
   uint8_t cbgti;
   uint8_t codeBlockGroupFlushIndicator;
   //  to be check the fields needed to L1 with NR_DL_UE_HARQ_t and NR_UE_DLSCH_t
@@ -480,6 +479,7 @@ typedef struct {
   uint8_t nscid;
   uint16_t dlDmrsScramblingId;
   uint16_t pduBitmap;
+  uint32_t k1_feedback;
 } fapi_nr_dl_config_dlsch_pdu_rel15_t;
 
 typedef struct {
@@ -650,6 +650,10 @@ typedef struct
   uint8_t prach_multiple_carriers_in_a_band;//0 = disabled 1 = enabled
 
 } fapi_nr_prach_config_t;
+
+typedef struct {
+  uint16_t target_Nid_cell;
+} fapi_nr_synch_request_t;
 
 typedef struct {
   uint32_t config_mask;

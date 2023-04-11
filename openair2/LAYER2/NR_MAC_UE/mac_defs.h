@@ -61,6 +61,7 @@
 #include "NR_CellGroupConfig.h"
 #include "NR_ServingCellConfig.h"
 #include "NR_MeasConfig.h"
+#include "NR_ServingCellConfigCommonSIB.h"
 
 
 // ==========
@@ -158,11 +159,17 @@
 
 /*!\brief UE layer 2 status */
 typedef enum {
-    UE_CONNECTION_OK = 0,
-    UE_CONNECTION_LOST,
-    UE_PHY_RESYNCH,
-    UE_PHY_HO_PRACH
+  UE_NOT_SYNC = 0,
+  UE_SYNC,
+  UE_PERFORMING_RA,
+  UE_WAIT_TX_ACK_MSG4,
+  UE_CONNECTED
 } NR_UE_L2_STATE_t;
+
+typedef enum {
+  RA_2STEP = 0,
+  RA_4STEP
+} nr_ra_type_e;
 
 // LTE structure, might need to be adapted for NR
 typedef struct {
@@ -228,7 +235,6 @@ typedef struct {
 
 typedef enum {
   RA_UE_IDLE = 0,
-  GENERATE_IDLE = 0,
   GENERATE_PREAMBLE = 1,
   WAIT_RAR = 2,
   WAIT_CONTENTION_RESOLUTION = 3,
@@ -281,8 +287,8 @@ typedef struct {
   uint8_t RA_active;
   /// Random-access preamble index
   int ra_PreambleIndex;
-  /// Flag for the Msg1 generation: enabled at every occurrence of nr prach slot
-  RA_state_t generate_nr_prach;
+  // When multiple SSBs per RO is configured, this indicates which one is selected in this RO -> this is used to properly compute the PRACH preamble
+  uint8_t ssb_nb_in_ro;
 
   /// Random-access window counter
   int16_t RA_window_cnt;
@@ -370,13 +376,13 @@ typedef struct {
   uint32_t ssb_index;
   /// SSB RSRP in dBm
   short ssb_rsrp_dBm;
+  int consecutive_bch_failures;
 
-} NR_PHY_meas_t;
-
+} NR_SSB_meas_t;
 
 /*!\brief Top level UE MAC structure */
 typedef struct {
-
+  NR_UE_L2_STATE_t state;
   NR_ServingCellConfigCommon_t    *scc;
   NR_ServingCellConfigCommonSIB_t *scc_SIB;
   NR_CellGroupConfig_t            *cg;
@@ -385,6 +391,7 @@ typedef struct {
   long                            physCellId;
   ////  MAC config
   int                             first_sync_frame;
+  bool                            sib1_decoded;
   NR_DRX_Config_t                 *drx_Config;
   NR_SchedulingRequestConfig_t    *schedulingRequestConfig;
   NR_BSR_Config_t                 *bsr_Config;
@@ -393,18 +400,16 @@ typedef struct {
   NR_RNTI_Value_t                 *cs_RNTI;
   NR_MIB_t                        *mib;
 
+  NR_UE_DL_BWP_t current_DL_BWP;
+  NR_UE_UL_BWP_t current_UL_BWP;
+
   NR_BWP_Downlink_t               *DLbwp[MAX_NUM_BWP_UE];
   NR_BWP_Uplink_t                 *ULbwp[MAX_NUM_BWP_UE];
   NR_ControlResourceSet_t         *coreset[MAX_NUM_BWP_UE][FAPI_NR_MAX_CORESET_PER_BWP];
   NR_SearchSpace_t                *SSpace[MAX_NUM_BWP_UE][FAPI_NR_MAX_SS];
 
+  bool phy_config_request_sent;
   frame_type_t frame_type;
-
-  /*BWP*/
-  // dedicated active DL BWP
-  NR_BWP_Id_t DL_BWP_Id;
-  // dedicated active UL BWP
-  NR_BWP_Id_t UL_BWP_Id;
 
   ///     Type0-PDCCH seach space
   fapi_nr_dl_config_dci_dl_pdu_rel15_t type0_pdcch_dci_config;
@@ -437,11 +442,12 @@ typedef struct {
   int first_ul_tx[NR_MAX_HARQ_PROCESSES];
   ////	FAPI-like interface message
   fapi_nr_ul_config_request_t *ul_config_request;
-  fapi_nr_dl_config_request_t dl_config_request;
+  fapi_nr_dl_config_request_t *dl_config_request;
 
   ///     Interface module instances
   nr_ue_if_module_t       *if_module;
   nr_phy_config_t         phy_config;
+  nr_synch_request_t      synch_request;
 
   /// BSR report flag management
   uint8_t BSR_reporting_active;
@@ -460,9 +466,9 @@ typedef struct {
   uint16_t nr_band;
   uint8_t ssb_subcarrier_offset;
 
-  NR_PHY_meas_t phy_measurements;
+  NR_SSB_meas_t ssb_measurements;
 
-  dci_pdu_rel15_t def_dci_pdu_rel15[8];
+  dci_pdu_rel15_t def_dci_pdu_rel15[NR_MAX_SLOTS_PER_FRAME][8];
 
   // Defined for abstracted mode
   nr_downlink_indication_t dl_info;
@@ -503,7 +509,7 @@ typedef struct prach_association_pattern {
 typedef struct ssb_info {
   bool transmitted; // True if the SSB index is transmitted according to the SSB positions map configuration
   prach_occasion_info_t *mapped_ro[MAX_NB_RO_PER_SSB_IN_ASSOCIATION_PATTERN]; // List of mapped RACH Occasions to this SSB index
-  uint16_t nb_mapped_ro; // Total number of mapped ROs to this SSB index
+  uint32_t nb_mapped_ro; // Total number of mapped ROs to this SSB index
 } ssb_info_t;
 
 // List of all the possible SSBs and their details

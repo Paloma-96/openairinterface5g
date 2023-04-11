@@ -32,14 +32,7 @@
 #define __NR_RRC_CONFIG_H__
 
 #include "nr_rrc_defs.h"
-
-#define asn1cCallocOne(VaR, VaLue) \
-  VaR = calloc(1,sizeof(*VaR)); *VaR=VaLue;
-#define asn1cCalloc(VaR, lOcPtr) \
-  typeof(VaR) lOcPtr = VaR = calloc(1,sizeof(*VaR));
-#define asn1cSequenceAdd(VaR, TyPe, lOcPtr) \
-  TyPe *lOcPtr= calloc(1,sizeof(TyPe)); \
-  ASN_SEQUENCE_ADD(&VaR,lOcPtr);
+#include "openair2/RRC/NR/MESSAGES/asn1_msg.h"
 
 void set_phr_config(NR_MAC_CellGroupConfig_t *mac_CellGroupConfig);
 uint64_t get_ssb_bitmap(const NR_ServingCellConfigCommon_t *scc);
@@ -57,10 +50,20 @@ void nr_rrc_config_dl_tda(struct NR_PDSCH_TimeDomainResourceAllocationList *pdsc
 void nr_rrc_config_ul_tda(NR_ServingCellConfigCommon_t *scc, int min_fb_delay);
 void config_pucch_resset0(NR_PUCCH_Config_t *pucch_Config, int uid, int curr_bwp, NR_UE_NR_Capability_t *uecap);
 void config_pucch_resset1(NR_PUCCH_Config_t *pucch_Config, NR_UE_NR_Capability_t *uecap);
-void set_dl_DataToUL_ACK(NR_PUCCH_Config_t *pucch_Config, int min_feedback_time);
+void set_dl_DataToUL_ACK(NR_PUCCH_Config_t *pucch_Config, int min_feedback_time, NR_SubcarrierSpacing_t subcarrierSpacing);
 void set_pucch_power_config(NR_PUCCH_Config_t *pucch_Config, int do_csirs);
 void scheduling_request_config(const NR_ServingCellConfigCommon_t *scc,
-                               NR_PUCCH_Config_t *pucch_Config);
+                               NR_PUCCH_Config_t *pucch_Config,
+                               int scs);
+void config_rsrp_meas_report(NR_CSI_MeasConfig_t *csi_MeasConfig, const NR_ServingCellConfigCommon_t *servingcellconfigcommon, NR_PUCCH_CSI_Resource_t *pucchcsires, int do_csi, int rep_id, int uid);
+void config_csi_meas_report(NR_CSI_MeasConfig_t *csi_MeasConfig,
+                            const NR_ServingCellConfigCommon_t *servingcellconfigcommon,
+                            NR_PUCCH_CSI_Resource_t *pucchcsires,
+                            struct NR_SetupRelease_PDSCH_Config *pdsch_Config,
+                            const rrc_pdsch_AntennaPorts_t *antennaports,
+                            const int max_layers,
+                            int rep_id,
+                            int uid);
 void config_csirs(const NR_ServingCellConfigCommon_t *servingcellconfigcommon,
                   NR_CSI_MeasConfig_t *csi_MeasConfig,
                   int uid,
@@ -70,7 +73,8 @@ void config_csirs(const NR_ServingCellConfigCommon_t *servingcellconfigcommon,
                   int id);
 void config_csiim(int do_csirs, int dl_antenna_ports, int curr_bwp,
                   NR_CSI_MeasConfig_t *csi_MeasConfig, int id);
-void config_srs(NR_SetupRelease_SRS_Config_t *setup_release_srs_Config,
+void config_srs(const NR_ServingCellConfigCommon_t *scc,
+                NR_SetupRelease_SRS_Config_t *setup_release_srs_Config,
                 const NR_UE_NR_Capability_t *uecap,
                 const int curr_bwp,
                 const int uid,
@@ -87,7 +91,7 @@ void prepare_sim_uecap(NR_UE_NR_Capability_t *cap,
                        int numerology,
                        int rbsize,
                        int mcs_table);
-struct NR_SetupRelease_PUSCH_Config *config_pusch(NR_PUSCH_Config_t *pusch_Config, const NR_ServingCellConfigCommon_t *scc);
+struct NR_SetupRelease_PUSCH_Config *config_pusch(NR_PUSCH_Config_t *pusch_Config);
 void config_downlinkBWP(NR_BWP_Downlink_t *bwp,
                         const NR_ServingCellConfigCommon_t *scc,
                         const NR_ServingCellConfig_t *servingcellconfigdedicated,
@@ -101,5 +105,6 @@ void config_uplinkBWP(NR_BWP_Uplink_t *ubwp,
                       const NR_ServingCellConfig_t *servingcellconfigdedicated,
                       const NR_ServingCellConfigCommon_t *scc,
                       NR_UE_NR_Capability_t *uecap);
+NR_MAC_CellGroupConfig_t *configure_mac_cellgroup(void);
 
 #endif

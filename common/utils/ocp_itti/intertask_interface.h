@@ -79,6 +79,7 @@ typedef struct IttiMsgText_s {
 #include <openair2/COMMON/as_message.h>
 #include <openair2/RRC/LTE/rrc_types.h>
 #include <openair2/COMMON/rrc_messages_types.h>
+#include <openair2/COMMON/e1ap_messages_types.h>
 
 #include <openair3/NAS/COMMON/UTIL/OctetString.h>
 #include <openair3/NAS/COMMON/IES/AccessPointName.h>
@@ -256,8 +257,6 @@ typedef struct IttiMsgText_s {
 #include <openair3/MME_APP/mme_app.h>
 //#include <proto.h>
 
-#include <openair3/ocp-gtpu/gtpv1u_eNB_task.h>
-#include <openair3/ocp-gtpu/gtpv1u_gNB_task.h>
 void *rrc_enb_process_itti_msg(void *);
 #include <openair3/SCTP/sctp_eNB_task.h>
 #include <openair3/NGAP/ngap_gNB.h>
@@ -412,7 +411,7 @@ typedef struct MessageHeader_s {
 } MessageHeader;
 
 typedef struct message_info_s {
-  int id;
+  MessagesIds id;
   message_priorities_t priority;
   /* Message payload size */
   MessageHeaderSize size;
@@ -553,10 +552,13 @@ MessageDef *itti_alloc_new_message_sized(
   MessagesIds       message_id,
   MessageHeaderSize size);
 
-/** \brief handle signals and wait for all threads to join when the process complete.
-   This function should be called from the main thread after having created all ITTI tasks.
+/** \brief Wait for SIGINT/SIGTERM signals to unblock ITTI.
+   This function should be called from the main thread after having created all ITTI tasks. If handler is NULL, a default handler is installed.
+    \param handler a custom signal handler. To unblock, it should call itti_wait_tasks_unblock()
  **/
-void itti_wait_tasks_end(void);
+void itti_wait_tasks_end(void (*handler)(int));
+/** \brif unblocks ITTI waiting in itti_wait_tasks_end(). **/
+void itti_wait_tasks_unblock(void);
 void itti_set_task_real_time(task_id_t task_id);
 
 /** \brief Send a termination message to all tasks.
