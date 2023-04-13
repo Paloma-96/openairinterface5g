@@ -1018,6 +1018,14 @@ int phy_procedures_gNB_uespec_RX(PHY_VARS_gNB *gNB, int frame_rx, int slot_rx)
         }
         srs_indication->report_type = srs_pdu->srs_parameters_v4.report_type[0];
 
+        //PALOMA HACK 
+        int ul_srs_toa = srs_indication->timing_advance_offset;
+        int ul_srs_toa_nsec = srs_indication->timing_advance_offset_nsec;
+        int ul_srs_snr = snr;
+
+        printf(PHY, "[UE RNTI %04x][sfn %i][slot %i] UL SRS ToA ==> %i [ UL SRS ToA ns %i] / %d samples, SNR %d dB\n", srs_indication->rnti, gNB->UL_INFO.srs_ind.sfn, gNB->UL_INFO.srs_ind.slot, srs_indication->timing_advance_offset, srs_indication->timing_advance_offset_nsec, frame_params->ofdm_symbol_size, ul_srs_snr);
+
+
 #ifdef SRS_IND_DEBUG
         LOG_I(NR_PHY, "gNB->UL_INFO.srs_ind.sfn = %i\n", gNB->UL_INFO.srs_ind.sfn);
         LOG_I(NR_PHY, "gNB->UL_INFO.srs_ind.slot = %i\n", gNB->UL_INFO.srs_ind.slot);

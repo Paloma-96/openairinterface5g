@@ -1754,12 +1754,13 @@ void pf_ul(module_id_t module_id,
           tbs,
           coeff_ue);
     UE_sched[curUE].coef=coeff_ue;
+    }
     UE_sched[curUE].UE=UE;
     curUE++;
   }
-
-  qsort(UE_sched, sizeofArray(UE_sched), sizeof(UEsched_t), comparator);
-  UEsched_t *iterator=UE_sched;
+  
+  qsort(UE_sched[], sizeofArray(UE_sched[]), sizeof(UEsched_t), comparator);
+  UEsched_t *iterator= UE_sched[];
 
   /* Loop UE_sched to find max coeff and allocate transmission */
   while (remainUEs> 0 && n_rb_sched >= min_rb && iterator->UE != NULL) {
@@ -1831,17 +1832,30 @@ void pf_ul(module_id_t module_id,
     update_ul_ue_R_Qm(sched_pusch->mcs, current_BWP->mcs_table, current_BWP->pusch_Config, &sched_pusch->R, &sched_pusch->Qm);
     uint16_t rbSize = 0;
     uint32_t TBS = 0;
+    uint32_t bytes_to_schedule;
+    if (iterator->UE->is_GBR){
+      bytes_to_schedule = iterator->UE->guaranteed_tbs_bytes_ul;
+    } else {
+      bytes_to_schedule = B;
+    }
     nr_find_nb_rb(sched_pusch->Qm,
                   sched_pusch->R,
                   current_BWP->transform_precoding,
                   sched_pusch->nrOfLayers,
                   sched_pusch->tda_info.nrOfSymbols,
                   sched_pusch->dmrs_info.N_PRB_DMRS * sched_pusch->dmrs_info.num_dmrs_symb,
-                  B,
+                  bytes_to_schedule,
                   min_rb,
                   max_rbSize,
                   &TBS,
                   &rbSize);
+    //if (iterator->UE->is_GBR){
+    //  LOG_I(NR_MAC,"Given %d rbs\n",rbSize);
+    //}
+
+    // update avg tbs ul
+    const float s_coeff = 0.1F;
+    iterator->UE->avg_tbs_1s_ul = iterator->UE->avg_tbs_1s_ul * (1-s_coeff) + s_coeff*TBS;
 
     sched_pusch->rbSize = rbSize;
     sched_pusch->tb_size = TBS;

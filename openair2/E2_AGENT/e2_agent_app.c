@@ -12,6 +12,7 @@
 #include "common/ran_context.h"
 #include "common/utils/LOG/log.h"
 #include "e2_message_handlers.h"
+#include "common/utils/ocp_itti/intertask_interface.h"
 
 
 extern RAN_CONTEXT_t RC;

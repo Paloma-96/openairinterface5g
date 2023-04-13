@@ -287,6 +287,7 @@ typedef struct {
     int32_t reserved;
 } prs_meas_t;
 
+
 // rel16 prs k_prime table as per ts138.211 sec.7.4.1.7.2
 #define K_PRIME_TABLE_ROW_SIZE 4
 #define K_PRIME_TABLE_COL_SIZE 12

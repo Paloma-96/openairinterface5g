@@ -873,6 +873,7 @@ int nr_srs_channel_estimation(const PHY_VARS_gNB *gNB,
                 (int16_t*) srs_estimated_channel_freq[ant][p_index],
                 (int16_t*) srs_estimated_channel_time[ant][p_index]);
 
+      
       memcpy(&srs_estimated_channel_time_shifted[ant][p_index][0],
              &srs_estimated_channel_time[ant][p_index][gNB->frame_parms.ofdm_symbol_size>>1],
              (gNB->frame_parms.ofdm_symbol_size>>1)*sizeof(int32_t));
