@@ -342,6 +342,7 @@ extern uint16_t sf_ahead;
 extern int ldpc_offload_flag;
 extern int oai_exit;
 
+int get_first_unused_index(int32_t *array);
 void tx_func(void *param);
 void rx_func(void *param);
 void ru_tx_func(void *param);

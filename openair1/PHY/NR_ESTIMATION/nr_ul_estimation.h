@@ -86,5 +86,6 @@ int nr_srs_channel_estimation(const PHY_VARS_gNB *gNB,
                               int32_t srs_estimated_channel_time[][1<<srs_pdu->num_ant_ports][gNB->frame_parms.ofdm_symbol_size],
                               int32_t srs_estimated_channel_time_shifted[][1<<srs_pdu->num_ant_ports][gNB->frame_parms.ofdm_symbol_size],
                               int8_t *snr_per_rb,
-                              int8_t *snr);
+                              int8_t *snr,
+                              int32_t *ul_srs_toa);
 #endif

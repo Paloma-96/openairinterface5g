@@ -109,6 +109,17 @@ time_stats_t softmodem_stats_rx_sf; // total rx time
 #define TICK_TO_US(ts) (ts.trials==0?0:ts.diff/ts.trials)
 #define L1STATSSTRLEN 16384
 
+#define LENGHT_SRS_UL_TOA_HISTORY 1000
+int32_t* srs_ul_toa_array_nr_gnb;
+
+int get_first_unused_index(int32_t *array) {
+    for (int i = 0; i < LENGHT_SRS_UL_TOA_HISTORY; i++) {
+        if (array[i] == -1) {
+            return i;
+        }
+    }
+    return 0; // All indices are used, return the first index
+}
 
 void tx_func(void *param) {
 
@@ -197,7 +208,10 @@ void rx_func(void *param)
                            0,
                            gNB->frame_parms.Ncp==EXTENDED?12:14);
     }
-    phy_procedures_gNB_uespec_RX(gNB, frame_rx, slot_rx);
+    printf("phy_procedures_gNB_uespec_RX \n");
+    int32_t *srs_ul_toa_array_nr_gnb_tmp = srs_ul_toa_array_nr_gnb;
+    int index = get_first_unused_index(srs_ul_toa_array_nr_gnb_tmp);
+    phy_procedures_gNB_uespec_RX(gNB, frame_rx, slot_rx, &srs_ul_toa_array_nr_gnb_tmp[index]);
   }
 
   stop_meas( &softmodem_stats_rxtx_sf );
@@ -414,6 +428,7 @@ void init_gNB_Tpool(int inst) {
 
   // L1 RX result FIFO 
   initNotifiedFIFO(&gNB->resp_L1);
+  printf("Initializing L1 RX result FIFO with rx_func");
   notifiedFIFO_elt_t *msg = newNotifiedFIFO_elt(sizeof(processingData_L1_t), 0, &gNB->resp_L1, rx_func);
   pushNotifiedFIFO(&gNB->resp_L1, msg); // to unblock the process in the beginning
 
@@ -493,9 +508,8 @@ void print_opp_meas(void) {
   }
 }
 
-
 /// eNB kept in function name for nffapi calls, TO FIX
-void init_eNB_afterRU(void) {
+void init_eNB_afterRU(int32_t *srs_ul_toa) {
   int inst,ru_id,i,aa;
   PHY_VARS_gNB *gNB;
   LOG_I(PHY,"%s() RC.nb_nr_inst:%d\n", __FUNCTION__, RC.nb_nr_inst);
@@ -541,10 +555,14 @@ void init_eNB_afterRU(void) {
 
 }
 
-void init_gNB(int single_thread_flag,int wait_for_sync) {
+void init_gNB(int single_thread_flag,int wait_for_sync, int32_t *srs_ul_toa_array) {
 
   int inst;
   PHY_VARS_gNB *gNB;
+
+  srs_ul_toa_array_nr_gnb = srs_ul_toa_array;
+
+    
 
   if (RC.gNB == NULL) {
     RC.gNB = (PHY_VARS_gNB **) calloc(1+RC.nb_nr_L1_inst, sizeof(PHY_VARS_gNB *));

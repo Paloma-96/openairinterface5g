@@ -726,7 +726,7 @@ int check_srs_pdu(const nfapi_nr_srs_pdu_t *srs_pdu, nfapi_nr_srs_pdu_t *saved_s
   return 0;
 }
 
-int phy_procedures_gNB_uespec_RX(PHY_VARS_gNB *gNB, int frame_rx, int slot_rx)
+int phy_procedures_gNB_uespec_RX(PHY_VARS_gNB *gNB, int frame_rx, int slot_rx, int32_t *ul_srs_toa)
 {
   /* those variables to log T_GNB_PHY_PUCCH_PUSCH_IQ only when we try to decode */
   int pucch_decode_done = 0;
@@ -950,6 +950,7 @@ int phy_procedures_gNB_uespec_RX(PHY_VARS_gNB *gNB, int frame_rx, int slot_rx)
 
         if (srs_est >= 0) {
           start_meas(&gNB->srs_channel_estimation_stats);
+          printf("nr srs channel estimation\n");
           nr_srs_channel_estimation(gNB,
                                     frame_rx,
                                     slot_rx,
@@ -961,7 +962,8 @@ int phy_procedures_gNB_uespec_RX(PHY_VARS_gNB *gNB, int frame_rx, int slot_rx)
                                     srs_estimated_channel_time,
                                     srs_estimated_channel_time_shifted,
                                     snr_per_rb,
-                                    &snr);
+                                    &snr,
+                                    ul_srs_toa);
           stop_meas(&gNB->srs_channel_estimation_stats);
         }
 
@@ -1018,11 +1020,10 @@ int phy_procedures_gNB_uespec_RX(PHY_VARS_gNB *gNB, int frame_rx, int slot_rx)
         srs_indication->report_type = srs_pdu->srs_parameters_v4.report_type[0];
 
         //PALOMA HACK 
-        int ul_srs_toa = srs_indication->timing_advance_offset;
-        int ul_srs_toa_nsec = srs_indication->timing_advance_offset_nsec;
-        int ul_srs_snr = snr;
+        int16_t ul_srs_toa_test = srs_indication->timing_advance_offset;
+        int16_t ul_srs_toa_nsec_test = srs_indication->timing_advance_offset_nsec;
 
-        printf(PHY, "[UE RNTI %04x][sfn %i][slot %i] UL SRS ToA ==> %i [ UL SRS ToA ns %i] / %d samples, SNR %d dB\n", srs_indication->rnti, gNB->UL_INFO.srs_ind.sfn, gNB->UL_INFO.srs_ind.slot, srs_indication->timing_advance_offset, srs_indication->timing_advance_offset_nsec, frame_params->ofdm_symbol_size, ul_srs_snr);
+        printf("[UE RNTI %04x][sfn %i][slot %i] UL SRS ToA ==> %i [ UL SRS ToA ns %i] / %d samples\n", srs_indication->rnti, gNB->UL_INFO.srs_ind.sfn, gNB->UL_INFO.srs_ind.slot, ul_srs_toa_test, ul_srs_toa_nsec_test, frame_parms->ofdm_symbol_size);
 
 
 #ifdef SRS_IND_DEBUG

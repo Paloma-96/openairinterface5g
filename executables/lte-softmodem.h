@@ -184,7 +184,7 @@ extern void init_ue_devices(PHY_VARS_UE *);
 
 PHY_VARS_UE *init_ue_vars(LTE_DL_FRAME_PARMS *frame_parms, uint8_t UE_id, uint8_t abstraction_flag);
 
-void init_eNB_afterRU(void);
+void init_eNB_afterRU();
 
 extern void init_UE_stub_single_thread(int nb_inst, int eMBMS_active, int uecap_xer_in, char *emul_iface);
 extern void init_UE_standalone_thread(int ue_idx);

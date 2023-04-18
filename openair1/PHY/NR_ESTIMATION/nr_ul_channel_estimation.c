@@ -44,7 +44,7 @@
 #define dBc(x,y) (dB_fixed(((int32_t)(x))*(x) + ((int32_t)(y))*(y)))
 
 /* Generic function to find the peak of channel estimation buffer */
-void peak_estimator(int32_t *buffer, int32_t buf_len, int32_t *peak_idx, int32_t *peak_val)
+void peak_estimator(int32_t *buffer, int32_t buf_len, int32_t *peak_idx)
 {
   int32_t max_val = 0, max_idx = 0, abs_val = 0;
   for(int k = 0; k < buf_len; k++)
@@ -56,41 +56,7 @@ void peak_estimator(int32_t *buffer, int32_t buf_len, int32_t *peak_idx, int32_t
       max_idx = k;
     }
   }
-  *peak_val = max_val;
   *peak_idx = max_idx;
-}
-
-int find_peak_index(const int16_t *signal_real,
-                    const int16_t *signal_imag,
-                    int num_samples) {
-    int peak_index = 0;
-    double peak_magnitude = 0;
-    for (int i = 0; i < num_samples; i++) {
-        double magnitude = sqrt(signal_real[i] * signal_real[i] + signal_imag[i] * signal_imag[i]);
-        if (magnitude > peak_magnitude) {
-            peak_magnitude = magnitude;
-            peak_index = i;
-        }
-    }
-    return peak_index;
-}
-
-void my_idft(const int16_t *signal_real,
-          const int16_t *signal_imag,
-          int num_samples,
-          int16_t *result_real,
-          int16_t *result_imag) {
-    for (int i = 0; i < num_samples; i++) {
-        result_real[i] = 0;
-        result_imag[i] = 0;
-        for (int j = 0; j < num_samples; j++) {
-            double angle = 2 * M_PI * i * j / num_samples;
-            result_real[i] += signal_real[j] * cos(angle) - signal_imag[j] * sin(angle);
-            result_imag[i] += signal_real[j] * sin(angle) + signal_imag[j] * cos(angle);
-        }
-        result_real[i] /= num_samples;
-        result_imag[i] /= num_samples;
-    }
 }
 
 void freq2time(uint16_t ofdm_symbol_size,
@@ -728,7 +694,8 @@ int nr_srs_channel_estimation(const PHY_VARS_gNB *gNB,
                               int32_t srs_estimated_channel_time[][1<<srs_pdu->num_ant_ports][gNB->frame_parms.ofdm_symbol_size],
                               int32_t srs_estimated_channel_time_shifted[][1<<srs_pdu->num_ant_ports][gNB->frame_parms.ofdm_symbol_size],
                               int8_t *snr_per_rb,
-                              int8_t *snr) {
+                              int8_t *snr,
+                              int32_t *ul_srs_toa) {
 
 #ifdef SRS_DEBUG
   LOG_I(NR_PHY,"Calling %s function\n", __FUNCTION__);
@@ -811,17 +778,7 @@ int nr_srs_channel_estimation(const PHY_VARS_gNB *gNB,
 
         srs_ls_estimated_channel[subcarrier].r = ls_estimated[0];
         srs_ls_estimated_channel[subcarrier].i = ls_estimated[1];
-
-        // Convert the LS estimate from the frequency domain to the time domain
-        int num_samples = frame_parms->ofdm_symbol_size*(1<<srs_pdu->num_symbols);
-
-        int16_t ls_estimated_time_domain_real[num_samples];
-        int16_t ls_estimated_time_domain_imag[num_samples];
-        my_idft(srs_ls_estimated_channel[subcarrier].r, srs_ls_estimated_channel[subcarrier].i, num_samples, ls_estimated_time_domain_real, ls_estimated_time_domain_imag);
-
-        // Compute the estimated TOA
-        int my_TOA = find_peak_index(ls_estimated_time_domain_real, ls_estimated_time_domain_imag, num_samples);
-        printf("++++++++ my_toa = %d\n", my_TOA);
+        
 
 #ifdef SRS_DEBUG
         int subcarrier_log = subcarrier-subcarrier_offset;
@@ -958,28 +915,16 @@ int nr_srs_channel_estimation(const PHY_VARS_gNB *gNB,
              &srs_estimated_channel_time[ant][p_index][0],
              (gNB->frame_parms.ofdm_symbol_size>>1)*sizeof(int32_t));
 
+      // PALOMA HACK
       // peak estimator
 
-      int32_t srs_est_ch_shifted_toa = 0;
-      int32_t srs_est_ch_shifted_ch_pwr = 0;
-      peak_estimator(&srs_estimated_channel_time_shifted[ant][p_index],
+      //int32_t srs_est_ch_toa = -1;
+      printf("peak_estimator");
+      peak_estimator(srs_estimated_channel_time[ant][p_index],
                    gNB->frame_parms.ofdm_symbol_size,
-                   &srs_est_ch_shifted_toa,
-                   &srs_est_ch_shifted_ch_pwr);
+                   ul_srs_toa);
 
-      printf("++++++++ srs_est_ch_shifted_toa = %d\n", srs_est_ch_shifted_toa);
-      printf("++++++++ srs_est_ch_shifted_ch_pwr = %d\n", srs_est_ch_shifted_ch_pwr);
-      
-      int32_t srs_est_ch_toa = 0;
-      int32_t srs_est_ch_ch_pwr = 0;
-      peak_estimator(&srs_estimated_channel_time[ant][p_index],
-                   gNB->frame_parms.ofdm_symbol_size,
-                   &srs_est_ch_toa,
-                   &srs_est_ch_ch_pwr);
-      
-      printf("++++++++ srs_est_ch_toa = %d\n", srs_est_ch_toa);
-      printf("++++++++ srs_est_ch_ch_pwr = %d\n", srs_est_ch_ch_pwr);
-
+      printf("SRS TOA = [%d]", ul_srs_toa); 
     } // for (int p_index = 0; p_index < N_ap; p_index++)
   } // for (int ant = 0; ant < frame_parms->nb_antennas_rx; ant++)
 

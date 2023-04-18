@@ -172,9 +172,23 @@ sulla porta 7000 sm connector attende che la logic invii un buffer da iniettare 
     resp = RAN_indication_response()
     resp.ParseFromString(data_sck)
 
-    -> # crea nuova richiesta di controllo
+    -> # crea nuova richiesta di controllore
     control_buf = gbr_control_interactive()
         -> chiede cose all'utente, e impacchetta il tutto in un master_msg(inner_msg), lo reliazzia e poi lo invia sulla 4200 al sm connector
     send_socket(control_sck, control_buf)
 
 
+
+
+
+
+
+
+
+#####################################################################
+
+1 nel file nr-softmodem.c dichiaro array srs_ul_toa_array globale
+2 nello stesso file lo inizializzo a -1 nel main
+
+3 nello stesso file passo il puntatore dell'array alla funzione init_gNB() che lo usa per inizializzare la variabile globale srs_ul_toa_array_nr_gnb nel file nr-gnb.c
+4 in nr-gnb.c rx_func usa la variabile globale dell'array per passare a phy_procedures_nr_gNB() il puntatore al primo index con elemento -1 dell'array che verra popolato col valore di toa corrente

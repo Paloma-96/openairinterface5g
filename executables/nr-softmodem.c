@@ -83,6 +83,10 @@ unsigned short config_frames[4] = {2,9,11,13};
 #include "openair2/E1AP/e1ap_api.h"
 #include <E2_AGENT/e2_agent_app.h>
 
+#define LENGHT_SRS_UL_TOA_HISTORY 1000
+int32_t srs_ul_toa_array[LENGHT_SRS_UL_TOA_HISTORY];
+
+
 pthread_cond_t nfapi_sync_cond;
 pthread_mutex_t nfapi_sync_mutex;
 int nfapi_sync_var=-1; //!< protected by mutex \ref nfapi_sync_mutex
@@ -132,7 +136,6 @@ static int tx_max_power[MAX_NUM_CCs]; /* =  {0,0}*/;
 
 
 int chain_offset=0;
-
 
 uint8_t dci_Format = 0;
 uint8_t agregation_Level =0xFF;
@@ -640,6 +643,11 @@ int main( int argc, char **argv ) {
   printf("------------------ calling e2 agent init...\n");
   AssertFatal(ret==0,"cannot create ITTI tasks\n");
   e2_agent_init();
+  
+  printf("Initializing array for SRS UL TOA estimation to -1 \n");
+  for (int i = 0; i < LENGHT_SRS_UL_TOA_HISTORY; i++) {
+    srs_ul_toa_array[i] = -1;
+  }
 
   // init UE_PF_PO and mutex lock
   pthread_mutex_init(&ue_pf_po_mutex, NULL);
@@ -662,7 +670,7 @@ int main( int argc, char **argv ) {
 
   if (RC.nb_nr_L1_inst > 0) {
     printf("Initializing gNB threads single_thread_flag:%d wait_for_sync:%d\n", single_thread_flag,wait_for_sync);
-    init_gNB(single_thread_flag,wait_for_sync);
+    init_gNB(single_thread_flag,wait_for_sync, srs_ul_toa_array);
   }
 
   printf("wait_gNBs()\n");
