@@ -919,12 +919,13 @@ int nr_srs_channel_estimation(const PHY_VARS_gNB *gNB,
       // peak estimator
 
       //int32_t srs_est_ch_toa = -1;
-      printf("peak_estimator");
+      //printf("[PALOMA HACK] peak_estimator \n");
       peak_estimator(srs_estimated_channel_time[ant][p_index],
                    gNB->frame_parms.ofdm_symbol_size,
                    ul_srs_toa);
 
-      printf("SRS TOA = [%d]", ul_srs_toa); 
+      printf("[PALOMA HACK] SRS TOA = [%d]\n", *ul_srs_toa); 
+
     } // for (int p_index = 0; p_index < N_ap; p_index++)
   } // for (int ant = 0; ant < frame_parms->nb_antennas_rx; ant++)
 

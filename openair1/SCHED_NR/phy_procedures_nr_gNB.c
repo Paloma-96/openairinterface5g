@@ -950,7 +950,7 @@ int phy_procedures_gNB_uespec_RX(PHY_VARS_gNB *gNB, int frame_rx, int slot_rx, i
 
         if (srs_est >= 0) {
           start_meas(&gNB->srs_channel_estimation_stats);
-          printf("nr srs channel estimation\n");
+          //printf("[PALOMA HACK] nr srs channel estimation\n");
           nr_srs_channel_estimation(gNB,
                                     frame_rx,
                                     slot_rx,
@@ -1020,10 +1020,10 @@ int phy_procedures_gNB_uespec_RX(PHY_VARS_gNB *gNB, int frame_rx, int slot_rx, i
         srs_indication->report_type = srs_pdu->srs_parameters_v4.report_type[0];
 
         //PALOMA HACK 
-        int16_t ul_srs_toa_test = srs_indication->timing_advance_offset;
-        int16_t ul_srs_toa_nsec_test = srs_indication->timing_advance_offset_nsec;
+        //int16_t ul_srs_toa_test = srs_indication->timing_advance_offset;
+        //int16_t ul_srs_toa_nsec_test = srs_indication->timing_advance_offset_nsec;
 
-        printf("[UE RNTI %04x][sfn %i][slot %i] UL SRS ToA ==> %i [ UL SRS ToA ns %i] / %d samples\n", srs_indication->rnti, gNB->UL_INFO.srs_ind.sfn, gNB->UL_INFO.srs_ind.slot, ul_srs_toa_test, ul_srs_toa_nsec_test, frame_parms->ofdm_symbol_size);
+        //printf("[UE RNTI %04x][sfn %i][slot %i] UL SRS ToA ==> %i [ UL SRS ToA ns %i] / %d samples\n", srs_indication->rnti, gNB->UL_INFO.srs_ind.sfn, gNB->UL_INFO.srs_ind.slot, ul_srs_toa_test, ul_srs_toa_nsec_test, frame_parms->ofdm_symbol_size);
 
 
 #ifdef SRS_IND_DEBUG

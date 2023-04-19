@@ -13,6 +13,8 @@ extern PHY_VARS_NR_UE ***PHY_vars_UE_g;
 int gnb_id = 0;
 int something = 0;
 
+int32_t ue = 0;
+int32_t *srs_ul_toa_list;
 
 
 void handle_subscription(RANMessage* in_mess){

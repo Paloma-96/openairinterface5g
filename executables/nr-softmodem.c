@@ -83,6 +83,7 @@ unsigned short config_frames[4] = {2,9,11,13};
 #include "openair2/E1AP/e1ap_api.h"
 #include <E2_AGENT/e2_agent_app.h>
 
+// PALOMA HACK
 #define LENGHT_SRS_UL_TOA_HISTORY 1000
 int32_t srs_ul_toa_array[LENGHT_SRS_UL_TOA_HISTORY];
 
@@ -644,7 +645,8 @@ int main( int argc, char **argv ) {
   AssertFatal(ret==0,"cannot create ITTI tasks\n");
   e2_agent_init();
   
-  printf("Initializing array for SRS UL TOA estimation to -1 \n");
+  // PALOMA HACK
+  //printf("[PALOMA HACK] Initializing array for SRS UL TOA estimation to -1 \n");
   for (int i = 0; i < LENGHT_SRS_UL_TOA_HISTORY; i++) {
     srs_ul_toa_array[i] = -1;
   }
@@ -670,6 +672,7 @@ int main( int argc, char **argv ) {
 
   if (RC.nb_nr_L1_inst > 0) {
     printf("Initializing gNB threads single_thread_flag:%d wait_for_sync:%d\n", single_thread_flag,wait_for_sync);
+    //printf("[PALOMA HACK] init_gNB with srs_ul_toa_array: %p \n", srs_ul_toa_array);
     init_gNB(single_thread_flag,wait_for_sync, srs_ul_toa_array);
   }
 

@@ -208,9 +208,11 @@ void rx_func(void *param)
                            0,
                            gNB->frame_parms.Ncp==EXTENDED?12:14);
     }
-    printf("phy_procedures_gNB_uespec_RX \n");
+    //printf("[PALOMA HACK] assign to srs_ul_toa_array_nr_gnb_tmp the pointer %p of srs_ul_toa_array_nr_gnb \n", srs_ul_toa_array_nr_gnb);
     int32_t *srs_ul_toa_array_nr_gnb_tmp = srs_ul_toa_array_nr_gnb;
+    //printf("[PALOMA HACK] get_first_unused_index(srs_ul_toa_array_nr_gnb_tmp) = %d \n", get_first_unused_index(srs_ul_toa_array_nr_gnb_tmp));
     int index = get_first_unused_index(srs_ul_toa_array_nr_gnb_tmp);
+    //printf("[PALOMA HACK] phy_procedures_gNB_uespec_RX con &srs_ul_toa_array_nr_gnb_tmp[%d] = %p) \n", index, &srs_ul_toa_array_nr_gnb_tmp[index]);
     phy_procedures_gNB_uespec_RX(gNB, frame_rx, slot_rx, &srs_ul_toa_array_nr_gnb_tmp[index]);
   }
 
@@ -560,6 +562,7 @@ void init_gNB(int single_thread_flag,int wait_for_sync, int32_t *srs_ul_toa_arra
   int inst;
   PHY_VARS_gNB *gNB;
 
+  //printf("[PALOMA HACK] assign to srs_ul_toa_array_nr_gnb the pointer %p to srs_ul_toa_array\n", srs_ul_toa_array);
   srs_ul_toa_array_nr_gnb = srs_ul_toa_array;
 
     
