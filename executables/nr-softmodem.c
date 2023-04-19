@@ -85,7 +85,7 @@ unsigned short config_frames[4] = {2,9,11,13};
 
 // PALOMA HACK
 #define LENGHT_SRS_UL_TOA_HISTORY 1000
-int32_t srs_ul_toa_array[LENGHT_SRS_UL_TOA_HISTORY];
+int32_t srs_ul_toa_array[LENGHT_SRS_UL_TOA_HISTORY];  
 
 
 pthread_cond_t nfapi_sync_cond;
@@ -643,13 +643,15 @@ int main( int argc, char **argv ) {
   int ret=create_gNB_tasks();
   printf("------------------ calling e2 agent init...\n");
   AssertFatal(ret==0,"cannot create ITTI tasks\n");
-  e2_agent_init();
   
   // PALOMA HACK
   //printf("[PALOMA HACK] Initializing array for SRS UL TOA estimation to -1 \n");
   for (int i = 0; i < LENGHT_SRS_UL_TOA_HISTORY; i++) {
     srs_ul_toa_array[i] = -1;
   }
+
+  e2_agent_init();
+
 
   // init UE_PF_PO and mutex lock
   pthread_mutex_init(&ue_pf_po_mutex, NULL);
@@ -673,7 +675,7 @@ int main( int argc, char **argv ) {
   if (RC.nb_nr_L1_inst > 0) {
     printf("Initializing gNB threads single_thread_flag:%d wait_for_sync:%d\n", single_thread_flag,wait_for_sync);
     //printf("[PALOMA HACK] init_gNB with srs_ul_toa_array: %p \n", srs_ul_toa_array);
-    init_gNB(single_thread_flag,wait_for_sync, srs_ul_toa_array);
+    init_gNB(single_thread_flag,wait_for_sync);
   }
 
   printf("wait_gNBs()\n");

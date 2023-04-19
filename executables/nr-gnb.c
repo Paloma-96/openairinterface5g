@@ -109,17 +109,9 @@ time_stats_t softmodem_stats_rx_sf; // total rx time
 #define TICK_TO_US(ts) (ts.trials==0?0:ts.diff/ts.trials)
 #define L1STATSSTRLEN 16384
 
+// PALOMA HACK
 #define LENGHT_SRS_UL_TOA_HISTORY 1000
-int32_t* srs_ul_toa_array_nr_gnb;
-
-int get_first_unused_index(int32_t *array) {
-    for (int i = 0; i < LENGHT_SRS_UL_TOA_HISTORY; i++) {
-        if (array[i] == -1) {
-            return i;
-        }
-    }
-    return 0; // All indices are used, return the first index
-}
+extern int32_t srs_ul_toa_array[LENGHT_SRS_UL_TOA_HISTORY];  
 
 void tx_func(void *param) {
 
@@ -208,12 +200,8 @@ void rx_func(void *param)
                            0,
                            gNB->frame_parms.Ncp==EXTENDED?12:14);
     }
-    //printf("[PALOMA HACK] assign to srs_ul_toa_array_nr_gnb_tmp the pointer %p of srs_ul_toa_array_nr_gnb \n", srs_ul_toa_array_nr_gnb);
-    int32_t *srs_ul_toa_array_nr_gnb_tmp = srs_ul_toa_array_nr_gnb;
-    //printf("[PALOMA HACK] get_first_unused_index(srs_ul_toa_array_nr_gnb_tmp) = %d \n", get_first_unused_index(srs_ul_toa_array_nr_gnb_tmp));
-    int index = get_first_unused_index(srs_ul_toa_array_nr_gnb_tmp);
-    //printf("[PALOMA HACK] phy_procedures_gNB_uespec_RX con &srs_ul_toa_array_nr_gnb_tmp[%d] = %p) \n", index, &srs_ul_toa_array_nr_gnb_tmp[index]);
-    phy_procedures_gNB_uespec_RX(gNB, frame_rx, slot_rx, &srs_ul_toa_array_nr_gnb_tmp[index]);
+    
+    phy_procedures_gNB_uespec_RX(gNB, frame_rx, slot_rx);
   }
 
   stop_meas( &softmodem_stats_rxtx_sf );
@@ -557,15 +545,10 @@ void init_eNB_afterRU(int32_t *srs_ul_toa) {
 
 }
 
-void init_gNB(int single_thread_flag,int wait_for_sync, int32_t *srs_ul_toa_array) {
+void init_gNB(int single_thread_flag,int wait_for_sync) {
 
   int inst;
-  PHY_VARS_gNB *gNB;
-
-  //printf("[PALOMA HACK] assign to srs_ul_toa_array_nr_gnb the pointer %p to srs_ul_toa_array\n", srs_ul_toa_array);
-  srs_ul_toa_array_nr_gnb = srs_ul_toa_array;
-
-    
+  PHY_VARS_gNB *gNB;      
 
   if (RC.gNB == NULL) {
     RC.gNB = (PHY_VARS_gNB **) calloc(1+RC.nb_nr_L1_inst, sizeof(PHY_VARS_gNB *));

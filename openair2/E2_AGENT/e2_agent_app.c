@@ -21,6 +21,7 @@ int agent_task_created = 0;
 pthread_t heartbeat_thread; // heartbeat has a mutex to easily stop heartbeat messages if needed (just lock the mutex)
 
 int e2_agent_init(){
+
     e2_agent_info_t* agent_info = malloc(sizeof(e2_agent_info_t));
     LOG_I(E2_AGENT,"Initializing E2 agent\n");
 

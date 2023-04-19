@@ -47,6 +47,20 @@
 //#define DEBUG_RXDATA
 //#define SRS_IND_DEBUG
 
+// PALOMA HACK
+#define LENGHT_SRS_UL_TOA_HISTORY 1000
+extern int32_t srs_ul_toa_array[LENGHT_SRS_UL_TOA_HISTORY];  
+
+int get_first_unused_index(int32_t *array) {
+    for (int i = 0; i < LENGHT_SRS_UL_TOA_HISTORY; i++) {
+        if (array[i] == -1) {
+            return i;
+        }
+    }
+    return 0; // All indices are used, return the first index
+}
+
+
 uint8_t SSB_Table[38]={0,2,4,6,8,10,12,14,254,254,16,18,20,22,24,26,28,30,254,254,32,34,36,38,40,42,44,46,254,254,48,50,52,54,56,58,60,62};
 
 extern uint8_t nfapi_mode;
@@ -726,7 +740,7 @@ int check_srs_pdu(const nfapi_nr_srs_pdu_t *srs_pdu, nfapi_nr_srs_pdu_t *saved_s
   return 0;
 }
 
-int phy_procedures_gNB_uespec_RX(PHY_VARS_gNB *gNB, int frame_rx, int slot_rx, int32_t *ul_srs_toa)
+int phy_procedures_gNB_uespec_RX(PHY_VARS_gNB *gNB, int frame_rx, int slot_rx)
 {
   /* those variables to log T_GNB_PHY_PUCCH_PUSCH_IQ only when we try to decode */
   int pucch_decode_done = 0;
@@ -843,11 +857,7 @@ int phy_procedures_gNB_uespec_RX(PHY_VARS_gNB *gNB, int frame_rx, int slot_rx, i
       buf[2] = (int16_t)pdu->rb_start;
       buf[3] = (int16_t)pdu->nr_of_symbols;
       buf[4] = (int16_t)pdu->start_symbol_index;
-      buf[5] = (int16_t)pdu->mcs_index;
-      buf[6] = (int16_t)pdu->pusch_data.rv_index;
-      buf[7] = (int16_t)ulsch->harq_pid;
-      memcpy(&gNB->common_vars.debugBuff[gNB->common_vars.debugBuff_sample_offset + 4],
-             &ru->common.rxdata[0][slot_offset],
+      buf[5] = (int16_t)pdu->mcs_index; int32_t *ul_srs_toa
              frame_parms->get_samples_per_slot(slot_rx, frame_parms) * sizeof(int32_t));
       gNB->common_vars.debugBuff_sample_offset += (frame_parms->get_samples_per_slot(slot_rx, frame_parms) + 1000 + 4);
       if (gNB->common_vars.debugBuff_sample_offset > ((frame_parms->get_samples_per_slot(slot_rx, frame_parms) + 1000 + 2) * 20)) {
@@ -951,6 +961,7 @@ int phy_procedures_gNB_uespec_RX(PHY_VARS_gNB *gNB, int frame_rx, int slot_rx, i
         if (srs_est >= 0) {
           start_meas(&gNB->srs_channel_estimation_stats);
           //printf("[PALOMA HACK] nr srs channel estimation\n");
+          int index = get_first_unused_index(srs_ul_toa_array);
           nr_srs_channel_estimation(gNB,
                                     frame_rx,
                                     slot_rx,
@@ -963,7 +974,7 @@ int phy_procedures_gNB_uespec_RX(PHY_VARS_gNB *gNB, int frame_rx, int slot_rx, i
                                     srs_estimated_channel_time_shifted,
                                     snr_per_rb,
                                     &snr,
-                                    ul_srs_toa);
+                                    &srs_ul_toa_array[index]);
           stop_meas(&gNB->srs_channel_estimation_stats);
         }
 

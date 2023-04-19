@@ -192,3 +192,8 @@ sulla porta 7000 sm connector attende che la logic invii un buffer da iniettare 
 
 3 nello stesso file passo il puntatore dell'array alla funzione init_gNB() che lo usa per inizializzare la variabile globale srs_ul_toa_array_nr_gnb nel file nr-gnb.c
 4 in nr-gnb.c rx_func usa la variabile globale dell'array per passare a phy_procedures_nr_gNB() il puntatore al primo index con elemento -1 dell'array che verra popolato col valore di toa corrente
+
+
+
+array non viene passato da gnb a xapp, conviene che faccio la media dei valori e mando quella, ogni volta mando la media di tutti i valori che ho,
+ridurre dimensione array a 50 cosi seguo l'utente se toa cambia
