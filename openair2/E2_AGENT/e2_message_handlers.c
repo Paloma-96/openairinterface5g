@@ -16,7 +16,8 @@ int something = 0;
 int32_t ue = 0;
 
 // PALOMA HACK
-#define LENGHT_SRS_UL_TOA_HISTORY 1000
+#define LENGHT_SRS_UL_TOA_HISTORY 50
+#define SYMB_SIZE 2048
 extern int32_t srs_ul_toa_array[LENGHT_SRS_UL_TOA_HISTORY];
 
 void handle_subscription(RANMessage* in_mess)
@@ -55,7 +56,7 @@ void build_indication_response(RANMessage* in_mess, int out_socket, sockaddr_in 
   map = malloc(sizeof(RANParamMapEntry*) * (in_mess->ran_indication_request->n_target_params + 1));
 
   // now build every element inside the map
-  printf("[PALOMA HACK] n_target_params = %d\n", in_mess->ran_indication_request->n_target_params);
+  //printf("[PALOMA HACK] n_target_params = %d\n", in_mess->ran_indication_request->n_target_params);
 
   for (i = 0; i < in_mess->ran_indication_request->n_target_params; i++) {
     // allocate space for this entry and initialize
@@ -108,9 +109,9 @@ void free_ran_param_map(RANParamMapEntry** map)
         // in this case we free the ue list first
         free_ue_list(map[i]->ue_list);
         break;
-      case RAN_PARAM_MAP_ENTRY__VALUE_TOA_LIST:
+      case RAN_PARAM_MAP_ENTRY__VALUE_TOA:
         // in this case we free the ue list first
-        free_toa_list(map[i]->toa_list);
+        free_toa(map[i]->toa);
         break;
       case RAN_PARAM_MAP_ENTRY__VALUE__NOT_SET:
         // nothing to do here, skip to default
@@ -323,12 +324,12 @@ UeListM* get_ue_list()
   return ue_list_m;
 }
 
-ToaListM* get_toa_list()
+ToaM* get_toa()
 {
-  printf("[PALOMA HACK] get_toa_list()\n");
+  //printf("[PALOMA HACK] get_toa()\n");
   // init toa list
-  ToaListM* toa_list_m = malloc(sizeof(ToaListM));
-  toa_list_m__init(toa_list_m);
+  ToaM* toa_m = malloc(sizeof(ToaM));
+  toa_m__init(toa_m);
 
   NR_UEs_t* UE_info_gnb = &RC.nrmac[0]->UE_info;
   
@@ -344,15 +345,38 @@ ToaListM* get_toa_list()
   }
   printf("[PALOMA HACK] set rnti: %d\n", rnti);
   // insert rnti
-  toa_list_m->rnti = rnti;
+  toa_m->rnti = rnti;
 
-  int32_t toa_val_list[LENGHT_SRS_UL_TOA_HISTORY + 1];
-  printf("[PALOMA HACK] set toa_val_list[i] = srs_ul_toa_array[i]\n");
+  //float toa_val = 0;
+  //printf("[PALOMA HACK] set toa_val_list[i] = srs_ul_toa_array[i]\n");
+  //for (int i = 0; i < LENGHT_SRS_UL_TOA_HISTORY; i++) {
+  //  toa_val_list[i] = srs_ul_toa_array[i];
+  //}
+
+  int count = 0; // count of valid elements
+  float sum = 0; // sum of absolute differences
+  double diff =0;
+
   for (int i = 0; i < LENGHT_SRS_UL_TOA_HISTORY; i++) {
-    toa_val_list[i] = srs_ul_toa_array[i];
+    //printf("[PALOMA HACK] srs_ul_toa_array[%d] = %d\n", i, srs_ul_toa_array[i]);
+    //printf("[PALOMA HACK] SYMB_SIZE = %d\n", SYMB_SIZE);
+    if (srs_ul_toa_array[i] != -1 && (srs_ul_toa_array[i] < 48 || srs_ul_toa_array[i] > 2000)) { // check if element is valid
+      if (srs_ul_toa_array[i] > SYMB_SIZE/2) {
+        diff = fabs(srs_ul_toa_array[i] - SYMB_SIZE);
+      } else {
+        diff = fabs(srs_ul_toa_array[i]);
+      }
+      printf("[PALOMA HACK] diff = %f\n", diff);
+
+      sum += diff; // add to sum
+      printf("[PALOMA HACK] sum = %f\n", sum);
+      count++; // increment count
+      printf("[PALOMA HACK] count = %d\n", count);
+    }
   }
-  printf("[PALOMA HACK] set  toa_val_list[LENGHT_SRS_UL_TOA_HISTORY] = NULL\n");
-  toa_val_list[LENGHT_SRS_UL_TOA_HISTORY] = NULL;
+
+  float mean = sum / count; // compute mean
+  
 
   // print toa_val_list values
   //for (int i = 0; i < LENGHT_SRS_UL_TOA_HISTORY; i++) {
@@ -361,13 +385,16 @@ ToaListM* get_toa_list()
 
   
   // insert list toa
-  printf("[PALOMA HACK] malloc toa_list_m->toa_val\n");
-  toa_list_m->toa_val = (int32_t*) malloc(sizeof(int32_t) * (LENGHT_SRS_UL_TOA_HISTORY + 1));
-  printf("[PALOMA HACK] memcpy toa_list_m->toa_val\n");
-  memcpy(toa_list_m->toa_val, toa_val_list, sizeof(int32_t) * (LENGHT_SRS_UL_TOA_HISTORY + 1));
-  //toa_list_m->toa_val = toa_val_list;
+  //printf("[PALOMA HACK] malloc toa_list_m->toa_val\n");
+  //toa_list_m->toa_val = (int32_t*) malloc(sizeof(int32_t) * (LENGHT_SRS_UL_TOA_HISTORY + 1));
+  //printf("[PALOMA HACK] memcpy toa_list_m->toa_val\n");
+  //memcpy(toa_list_m->toa_val, toa_val_list, sizeof(int32_t) * (LENGHT_SRS_UL_TOA_HISTORY + 1));
+
+  printf("[PALOMA HACK] set TOA: %f\n", mean);
+
+  toa_m->toa_val = mean;
   //free(toa_val_list);
-  return toa_list_m;
+  return toa_m;
 }
 
 // careful, this function leaves dangling pointers - not a big deal in this case though
@@ -389,20 +416,11 @@ void free_ue_list(UeListM* ue_list_m)
 }
 
 // careful, this function leaves dangling pointers - not a big deal in this case though
-void free_toa_list(ToaListM* toa_list_m)
+void free_toa(ToaM* toa_m)
 {
-  if (toa_list_m->rnti != 0) {
-    // free the ue rnti
-    //printf("[PALOMA HACK] free toa_list_m->rnti\n");
-    //free(toa_list_m->rnti);
-    // then free the list
-    
-    free(toa_list_m->toa_val);
-
-  }
   // finally free the outer data structure
-  printf("[PALOMA HACK] free toa_list_m\n");
-  free(toa_list_m);
+  //printf("[PALOMA HACK] free toa_m\n");
+  free(toa_m);
 }
 
 void ran_read(RANParameter ran_par_enum, RANParamMapEntry* map_entry)
@@ -421,8 +439,8 @@ void ran_read(RANParameter ran_par_enum, RANParamMapEntry* map_entry)
       map_entry->ue_list = get_ue_list();
       break;
     case RAN_PARAMETER__TOA_LIST:
-      map_entry->value_case = RAN_PARAM_MAP_ENTRY__VALUE_TOA_LIST;
-      map_entry->toa_list = get_toa_list();
+      map_entry->value_case = RAN_PARAM_MAP_ENTRY__VALUE_TOA;
+      map_entry->toa = get_toa();
       break;
     default:
       LOG_I(E2_AGENT, "unrecognized param %d\n", ran_par_enum);

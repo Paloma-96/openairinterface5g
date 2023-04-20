@@ -48,7 +48,7 @@
 //#define SRS_IND_DEBUG
 
 // PALOMA HACK
-#define LENGHT_SRS_UL_TOA_HISTORY 1000
+#define LENGHT_SRS_UL_TOA_HISTORY 50
 extern int32_t srs_ul_toa_array[LENGHT_SRS_UL_TOA_HISTORY];  
 
 int get_first_unused_index(int32_t *array) {

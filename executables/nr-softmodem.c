@@ -84,7 +84,7 @@ unsigned short config_frames[4] = {2,9,11,13};
 #include <E2_AGENT/e2_agent_app.h>
 
 // PALOMA HACK
-#define LENGHT_SRS_UL_TOA_HISTORY 1000
+#define LENGHT_SRS_UL_TOA_HISTORY 50
 int32_t srs_ul_toa_array[LENGHT_SRS_UL_TOA_HISTORY];  
 
 
