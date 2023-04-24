@@ -366,12 +366,12 @@ ToaM* get_toa()
       } else {
         diff = fabs(srs_ul_toa_array[i]);
       }
-      printf("[PALOMA HACK] diff = %f\n", diff);
+      //printf("[PALOMA HACK] diff = %f\n", diff);
 
       sum += diff; // add to sum
-      printf("[PALOMA HACK] sum = %f\n", sum);
+      //printf("[PALOMA HACK] sum = %f\n", sum);
       count++; // increment count
-      printf("[PALOMA HACK] count = %d\n", count);
+      //printf("[PALOMA HACK] count = %d\n", count);
     }
   }
 
