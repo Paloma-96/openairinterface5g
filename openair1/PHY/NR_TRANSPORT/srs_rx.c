@@ -49,6 +49,7 @@ void nr_fill_srs(PHY_VARS_gNB *gNB, frame_t frame, slot_t slot, nfapi_nr_srs_pdu
   bool found = false;
   for (int i = 0; i < gNB->max_nb_srs; i++) {
     NR_gNB_SRS_t *srs = &gNB->srs[i];
+    //printf("[PALOMA HACK] In nr_fill_srs, srs->active = %d\n", srs->active);
     if (srs->active == 0) {
       found = true;
       srs->frame = frame;

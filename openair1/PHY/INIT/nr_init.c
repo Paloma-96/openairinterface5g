@@ -1103,6 +1103,7 @@ void init_nr_transport(PHY_VARS_gNB *gNB)
   }
 
   gNB->srs = (NR_gNB_SRS_t *)malloc16(gNB->max_nb_srs * sizeof(NR_gNB_SRS_t));
+  //printf("[PALOMA HACK] Allocating %d SRS\n", gNB->max_nb_srs);
   for (int i = 0; i < gNB->max_nb_srs; i++)
     gNB->srs[i].active = 0;
 
@@ -1122,6 +1123,7 @@ void reset_nr_transport(PHY_VARS_gNB *gNB)
   const NR_DL_FRAME_PARMS *fp = &gNB->frame_parms;
 
   free(gNB->pucch);
+  //printf("[PALOMA HACK] Freeing %d SRS\n", gNB->max_nb_srs);
   free(gNB->srs);
 
   for (int i = 0; i < gNB->max_nb_pusch; i++)
