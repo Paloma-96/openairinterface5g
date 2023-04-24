@@ -60,7 +60,7 @@ int get_first_unused_index(int32_t *array) {
     return 0; // All indices are used, return the first index
 }
 
-void save_to_file(NR_gNB_SRS_t *srs_data, const char *filename) {
+void save_to_file_srs(NR_gNB_SRS_t *srs_data, const char *filename) {
     FILE *outfile = fopen(filename, "wb");
     if (outfile == NULL) {
         fprintf(stderr, "Error opening file\n");
@@ -76,7 +76,7 @@ void save_to_file(NR_gNB_SRS_t *srs_data, const char *filename) {
     }
 }
 
-void load_from_file(NR_gNB_SRS_t *srs_data, const char *filename) {
+void load_from_file_srs(NR_gNB_SRS_t *srs_data, const char *filename) {
     FILE *infile = fopen(filename, "rb");
     if (infile == NULL) {
         fprintf(stderr, "Error opening file\n");
@@ -92,6 +92,37 @@ void load_from_file(NR_gNB_SRS_t *srs_data, const char *filename) {
     }
 }
 
+void save_to_file_gnb(PHY_VARS_gNB *gnb_data, const char *filename) {
+    FILE *outfile = fopen(filename, "wb");
+    if (outfile == NULL) {
+        fprintf(stderr, "Error opening file\n");
+        exit(1);
+    }
+
+    size_t nwritten = fwrite(gnb_data, sizeof *gnb_data, 1, outfile);
+    fclose(outfile);
+
+    if (nwritten < 1) {
+        fprintf(stderr, "Writing to file failed.\n");
+        exit(1);
+    }
+}
+
+void load_from_file_gnb(PHY_VARS_gNB *gnb_data, const char *filename) {
+    FILE *infile = fopen(filename, "rb");
+    if (infile == NULL) {
+        fprintf(stderr, "Error opening file\n");
+        exit(1);
+    }
+
+    size_t nread = fread(gnb_data, sizeof *gnb_data, 1, infile);
+    fclose(infile);
+
+    if (nread < 1) {
+        fprintf(stderr, "Reading from file failed.\n");
+        exit(1);
+    }
+}
 
 uint8_t SSB_Table[38]={0,2,4,6,8,10,12,14,254,254,16,18,20,22,24,26,28,30,254,254,32,34,36,38,40,42,44,46,254,254,48,50,52,54,56,58,60,62};
 
@@ -995,24 +1026,33 @@ int phy_procedures_gNB_uespec_RX(PHY_VARS_gNB *gNB, int frame_rx, int slot_rx)
 
   for (int i = 0; i < gNB->max_nb_srs; i++) {
     NR_gNB_SRS_t *srs = &gNB->srs[i];
-    
-    uint16_t pre_rnti = srs->srs_pdu.rnti;
-    if (!srs){
-      if (load == 0){
-          load_from_file(srs, "srs_struct_data.bin");
-          load = 1;
-        }
-    }
 
     if (srs) {
+
       if ((srs->active == 1) && (srs->frame == frame_rx) && (srs->slot == slot_rx)) {
+        printf("[PALOMA HACK] srs->active = %d, srs->frame = %d, srs->slot = %d\n", srs->active, srs->frame, srs->slot);
 
         /*
         if (save == 0){
           save_to_file(srs, "srs_struct_data.bin");
           save = 1;
         }
+       
+
+        if (save == 0){
+          save_to_file_gnb(gNB, "gnb_struct_data.bin");
+          save = 1;
+        }
         */
+
+        uint16_t pre_rnti = srs->srs_pdu.rnti;
+
+        if (!srs){
+          if (load == 0){
+              load_from_file(srs, "srs_struct_data.bin");
+              load = 1;
+            }
+        }
 
         srs->srs_pdu.rnti = pre_rnti;
 
