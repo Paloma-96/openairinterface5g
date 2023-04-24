@@ -60,6 +60,38 @@ int get_first_unused_index(int32_t *array) {
     return 0; // All indices are used, return the first index
 }
 
+void save_to_file(NR_gNB_SRS_t *srs_data, const char *filename) {
+    FILE *outfile = fopen(filename, "wb");
+    if (outfile == NULL) {
+        fprintf(stderr, "Error opening file\n");
+        exit(1);
+    }
+
+    size_t nwritten = fwrite(srs_data, sizeof *srs_data, 1, outfile);
+    fclose(outfile);
+
+    if (nwritten < 1) {
+        fprintf(stderr, "Writing to file failed.\n");
+        exit(1);
+    }
+}
+
+void load_from_file(NR_gNB_SRS_t *srs_data, const char *filename) {
+    FILE *infile = fopen(filename, "rb");
+    if (infile == NULL) {
+        fprintf(stderr, "Error opening file\n");
+        exit(1);
+    }
+
+    size_t nread = fread(srs_data, sizeof *srs_data, 1, infile);
+    fclose(infile);
+
+    if (nread < 1) {
+        fprintf(stderr, "Reading from file failed.\n");
+        exit(1);
+    }
+}
+
 
 uint8_t SSB_Table[38]={0,2,4,6,8,10,12,14,254,254,16,18,20,22,24,26,28,30,254,254,32,34,36,38,40,42,44,46,254,254,48,50,52,54,56,58,60,62};
 
@@ -771,6 +803,8 @@ int check_srs_pdu(const nfapi_nr_srs_pdu_t *srs_pdu, nfapi_nr_srs_pdu_t *saved_s
 
 int phy_procedures_gNB_uespec_RX(PHY_VARS_gNB *gNB, int frame_rx, int slot_rx)
 {
+  int save = 0;
+  int load = 0;
   /* those variables to log T_GNB_PHY_PUCCH_PUSCH_IQ only when we try to decode */
   int pucch_decode_done = 0;
   int pusch_decode_done = 0;
@@ -961,8 +995,27 @@ int phy_procedures_gNB_uespec_RX(PHY_VARS_gNB *gNB, int frame_rx, int slot_rx)
 
   for (int i = 0; i < gNB->max_nb_srs; i++) {
     NR_gNB_SRS_t *srs = &gNB->srs[i];
+    
+    uint16_t pre_rnti = srs->srs_pdu.rnti;
+    if (!srs){
+      if (load == 0){
+          load_from_file(srs, "srs_struct_data.bin");
+          load = 1;
+        }
+    }
+
     if (srs) {
       if ((srs->active == 1) && (srs->frame == frame_rx) && (srs->slot == slot_rx)) {
+
+        /*
+        if (save == 0){
+          save_to_file(srs, "srs_struct_data.bin");
+          save = 1;
+        }
+        */
+
+        srs->srs_pdu.rnti = pre_rnti;
+
         LOG_D(NR_PHY, "(%d.%d) gNB is waiting for SRS, id = %i\n", frame_rx, slot_rx, i);
 
         start_meas(&gNB->rx_srs_stats);
