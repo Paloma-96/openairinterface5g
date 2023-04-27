@@ -1187,7 +1187,7 @@ void handle_nr_srs_measurements(const module_id_t module_id,
 
   NR_UE_info_t *UE = find_nr_UE(&RC.nrmac[module_id]->UE_info, srs_ind->rnti);
   if (!UE) {
-    LOG_W(NR_MAC, "Could not find UE for RNTI %04x\n", srs_ind->rnti);
+    //LOG_W(NR_MAC, "Could not find UE for RNTI %04x\n", srs_ind->rnti);
     return;
   }
 

@@ -284,7 +284,7 @@ int generate_srs_nr(nfapi_nr_srs_pdu_t *srs_config_pdu,
   while((ul_allocated_re[M_sc_b_SRS_index] != M_sc_b_SRS) && (M_sc_b_SRS_index < SRS_SB_CONF)){
     M_sc_b_SRS_index++;
   }
-
+  
   // SRS sequence generation and mapping, TS 38.211 - Section 6.4.1.4
   for (int p_index = 0; p_index < N_ap; p_index++) {
 
@@ -404,6 +404,8 @@ int generate_srs_nr(nfapi_nr_srs_pdu_t *srs_config_pdu,
 #endif
 
         *(c16_t *)&txdataF[p_index][symbol_offset + l_line_offset + subcarrier] = (c16_t){r_real_amp, r_imag_amp};
+        // print the SRS sequence
+
 
         // Subcarrier increment
         subcarrier += K_TC;

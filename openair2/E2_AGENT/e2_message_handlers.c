@@ -16,9 +16,9 @@ int something = 0;
 int32_t ue = 0;
 
 // PALOMA HACK
-#define LENGHT_SRS_UL_TOA_HISTORY 50
+#define LENGTH_SRS_UL_TOA_HISTORY 1
 #define SYMB_SIZE 2048
-extern int32_t srs_ul_toa_array[LENGHT_SRS_UL_TOA_HISTORY];
+extern int32_t srs_ul_toa_array[LENGTH_SRS_UL_TOA_HISTORY];
 
 void handle_subscription(RANMessage* in_mess)
 {
@@ -349,7 +349,7 @@ ToaM* get_toa()
 
   //float toa_val = 0;
   //printf("[PALOMA HACK] set toa_val_list[i] = srs_ul_toa_array[i]\n");
-  //for (int i = 0; i < LENGHT_SRS_UL_TOA_HISTORY; i++) {
+  //for (int i = 0; i < LENGTH_SRS_UL_TOA_HISTORY; i++) {
   //  toa_val_list[i] = srs_ul_toa_array[i];
   //}
 
@@ -357,7 +357,7 @@ ToaM* get_toa()
   float sum = 0; // sum of absolute differences
   double diff =0;
 
-  for (int i = 0; i < LENGHT_SRS_UL_TOA_HISTORY; i++) {
+  for (int i = 0; i < LENGTH_SRS_UL_TOA_HISTORY; i++) {
     //printf("[PALOMA HACK] srs_ul_toa_array[%d] = %d\n", i, srs_ul_toa_array[i]);
     //printf("[PALOMA HACK] SYMB_SIZE = %d\n", SYMB_SIZE);
     if (srs_ul_toa_array[i] != -1 && (srs_ul_toa_array[i] < 48 || srs_ul_toa_array[i] > 2000)) { // check if element is valid
@@ -379,16 +379,16 @@ ToaM* get_toa()
   
 
   // print toa_val_list values
-  //for (int i = 0; i < LENGHT_SRS_UL_TOA_HISTORY; i++) {
+  //for (int i = 0; i < LENGTH_SRS_UL_TOA_HISTORY; i++) {
   //  printf("[PALOMA HACK] toa_val_list[%d] = %d\n", i, toa_val_list[i]);
   //}
 
   
   // insert list toa
   //printf("[PALOMA HACK] malloc toa_list_m->toa_val\n");
-  //toa_list_m->toa_val = (int32_t*) malloc(sizeof(int32_t) * (LENGHT_SRS_UL_TOA_HISTORY + 1));
+  //toa_list_m->toa_val = (int32_t*) malloc(sizeof(int32_t) * (LENGTH_SRS_UL_TOA_HISTORY + 1));
   //printf("[PALOMA HACK] memcpy toa_list_m->toa_val\n");
-  //memcpy(toa_list_m->toa_val, toa_val_list, sizeof(int32_t) * (LENGHT_SRS_UL_TOA_HISTORY + 1));
+  //memcpy(toa_list_m->toa_val, toa_val_list, sizeof(int32_t) * (LENGTH_SRS_UL_TOA_HISTORY + 1));
 
   printf("[PALOMA HACK] set TOA: %f\n", mean);
 
