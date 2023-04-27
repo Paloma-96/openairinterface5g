@@ -48,16 +48,25 @@
 //#define SRS_IND_DEBUG
 
 // PALOMA HACK
-#define LENGHT_SRS_UL_TOA_HISTORY 50
-extern int32_t srs_ul_toa_array[LENGHT_SRS_UL_TOA_HISTORY];  
+#define LENGTH_SRS_UL_TOA_HISTORY 1
+extern int32_t srs_ul_toa_array[LENGTH_SRS_UL_TOA_HISTORY];  
+int8_t my_snr = -1;
 
 int get_first_unused_index(int32_t *array) {
-    for (int i = 0; i < LENGHT_SRS_UL_TOA_HISTORY; i++) {
-        if (array[i] == -1) {
-            return i;
+    static int last_used_index = -1; // Inizializza l'ultimo indice utilizzato a -1
+    int start_index = (last_used_index + 1) % LENGTH_SRS_UL_TOA_HISTORY; // Calcola l'indice di partenza per la ricerca
+
+    for (int i = 0; i < LENGTH_SRS_UL_TOA_HISTORY; i++) {
+        int current_index = (start_index + i) % LENGTH_SRS_UL_TOA_HISTORY; // Calcola l'indice corrente, avvolgendosi attorno all'array se necessario
+        if (array[current_index] == -1) {
+            last_used_index = current_index;
+            return current_index;
         }
     }
-    return 0; // All indices are used, return the first index
+
+    // Se tutti gli indici sono utilizzati, restituisci l'indice successivo a quello precedentemente restituito, avvolgendosi attorno all'array se necessario
+    last_used_index = start_index;
+    return start_index;
 }
 
 void save_to_file_srs(NR_gNB_SRS_t *srs_data, const char *filename) {
@@ -92,37 +101,191 @@ void load_from_file_srs(NR_gNB_SRS_t *srs_data, const char *filename) {
     }
 }
 
-void save_to_file_gnb(PHY_VARS_gNB *gnb_data, const char *filename) {
-    FILE *outfile = fopen(filename, "wb");
-    if (outfile == NULL) {
-        fprintf(stderr, "Error opening file\n");
-        exit(1);
-    }
+void save_srs_info_to_binary_file(nr_srs_info_t *nr_srs_info, const char *filename) {
+  FILE *file = fopen(filename, "wb");
+  if (!file) {
+    perror("Error opening file");
+    return -1;
+  }
 
-    size_t nwritten = fwrite(gnb_data, sizeof *gnb_data, 1, outfile);
-    fclose(outfile);
+  // Calculate the total size of the structure
+  size_t size = sizeof(nr_srs_info_t);
 
-    if (nwritten < 1) {
-        fprintf(stderr, "Writing to file failed.\n");
-        exit(1);
+  // Serialize the structure into a buffer
+  unsigned char *buffer = malloc(size);
+  if (!buffer) {
+    perror("Error allocating memory");
+    fclose(file);
+  }
+  memcpy(buffer, nr_srs_info, size);
+
+  // Write the buffer to the file
+  if (fwrite(buffer, 1, size, file) != size) {
+    perror("Error writing to file");
+    free(buffer);
+    fclose(file);
+  }
+
+  // Cleanup
+  free(buffer);
+  fclose(file);
+}
+
+void load_srs_info_from_binary_file(nr_srs_info_t *nr_srs_info, const char *filename) {
+  FILE *file = fopen(filename, "rb");
+  if (!file) {
+    perror("Error opening file");
+    return -1;
+  }
+
+  // Calculate the total size of the structure
+  size_t size = sizeof(nr_srs_info_t);
+
+  // Read the buffer from the file
+  unsigned char *buffer = malloc(size);
+  if (!buffer) {
+    perror("Error allocating memory");
+    fclose(file);
+  }
+  if (fread(buffer, 1, size, file) != size) {
+    perror("Error reading from file");
+    free(buffer);
+    fclose(file);
+  }
+
+  // Deserialize the buffer into the structure
+  memcpy(nr_srs_info, buffer, size);
+
+  // Cleanup
+  free(buffer);
+  fclose(file);
+}
+
+void save_srs_pdu_from_binary_file(nfapi_nr_srs_pdu_t *srspdu, const char *filename) {
+  FILE *file = fopen(filename, "wb");
+  if (!file) {
+    perror("Error opening file");
+    return -1;
+  }
+
+  // Calculate the total size of the structure
+  size_t size = sizeof(nfapi_nr_srs_pdu_t);
+
+  // Serialize the structure into a buffer
+  unsigned char *buffer = malloc(size);
+  if (!buffer) {
+    perror("Error allocating memory");
+    fclose(file);
+  }
+  memcpy(buffer, srspdu, size);
+
+  // Write the buffer to the file
+  if (fwrite(buffer, 1, size, file) != size) {
+    perror("Error writing to file");
+    free(buffer);
+    fclose(file);
+  }
+
+  // Cleanup
+  free(buffer);
+  fclose(file);
+}
+
+void load_srs_pdu_from_binary_file(nfapi_nr_srs_pdu_t *srspdu, const char *filename) {
+  FILE *file = fopen(filename, "rb");
+  if (!file) {
+    perror("Error opening file");
+    return -1;
+  }
+
+  // Calculate the total size of the structure
+  size_t size = sizeof(nfapi_nr_srs_pdu_t);
+
+  // Read the buffer from the file
+  unsigned char *buffer = malloc(size);
+  if (!buffer) {
+    perror("Error allocating memory");
+    fclose(file);
+  }
+  if (fread(buffer, 1, size, file) != size) {
+    perror("Error reading from file");
+    free(buffer);
+    fclose(file);
+  }
+
+  // Deserialize the buffer into the structure
+  memcpy(srspdu, buffer, size);
+
+  // Cleanup
+  free(buffer);
+  fclose(file);
+}
+
+void save_srs_generated_signal_to_binary_file(int32_t **srs_generated_signal, size_t rows, size_t cols, const char *filename) {
+  //rows = frame_parms->nb_antennas_rx, cols = gNB->frame_parms.ofdm_symbol_size*(1<<srs_pdu->num_symbols)
+    FILE *file = fopen(filename, "wb");
+    if (file != NULL) {
+        for (size_t i = 0; i < rows; i++) {
+            for (size_t j = 0; j < cols; j++) {
+                fwrite(&(srs_generated_signal[i][j]), sizeof(int32_t), 1, file);
+            }
+        }
+        fclose(file);
     }
 }
 
-void load_from_file_gnb(PHY_VARS_gNB *gnb_data, const char *filename) {
-    FILE *infile = fopen(filename, "rb");
-    if (infile == NULL) {
-        fprintf(stderr, "Error opening file\n");
-        exit(1);
-    }
+void load_srs_generated_signal_from_binary_file(int32_t **srs_generated_signal, size_t rows, size_t cols, const char *filename) {
+  //rows = rame_parms->nb_antennas_rx, cols = gNB->frame_parms.ofdm_symbol_size*(1<<srs_pdu->num_symbols)
 
-    size_t nread = fread(gnb_data, sizeof *gnb_data, 1, infile);
-    fclose(infile);
-
-    if (nread < 1) {
-        fprintf(stderr, "Reading from file failed.\n");
-        exit(1);
-    }
+  FILE *file = fopen(filename, "rb");
+  if (file != NULL) {
+      for (size_t i = 0; i < rows; i++) {
+          for (size_t j = 0; j < cols; j++) {
+              fread(&(srs_generated_signal[i][j]), sizeof(int32_t), 1, file);
+          }
+      }
+      fclose(file);
+  }
 }
+
+#include <stdio.h>
+#include <complex.h>
+
+void save_complex_array(const char *filename, int32_t ** array) {
+    FILE *file = fopen(filename, "w");
+    if (file == NULL) {
+        perror("Error opening file");
+        return;
+    }
+
+    for (int j = 0; j < 2; j++) {
+        for (int k = 0; k < 2048; k++) {
+            fprintf(file, "%f%+fi\n", creal(array[j][k]), cimag(array[j][k]));
+        }
+    }
+
+    fclose(file);
+}
+
+void load_complex_array(const char *filename,  int32_t ** array) {
+    FILE *file = fopen(filename, "r");
+    if (file == NULL) {
+        perror("Error opening file");
+        return;
+    }
+
+    double real, imag;
+
+    for (int j = 0; j < 2; j++) {
+        for (int k = 0; k < 2048; k++) {
+            fscanf(file, "%lf%lfi", &real, &imag);
+            array[j][k] = real + imag * I;
+        }
+    }
+
+    fclose(file);
+}
+
 
 uint8_t SSB_Table[38]={0,2,4,6,8,10,12,14,254,254,16,18,20,22,24,26,28,30,254,254,32,34,36,38,40,42,44,46,254,254,48,50,52,54,56,58,60,62};
 
@@ -834,8 +997,8 @@ int check_srs_pdu(const nfapi_nr_srs_pdu_t *srs_pdu, nfapi_nr_srs_pdu_t *saved_s
 
 int phy_procedures_gNB_uespec_RX(PHY_VARS_gNB *gNB, int frame_rx, int slot_rx)
 {
-  int save = 0;
-  int load = 0;
+  static int save = 0;
+  static int load = 0;
   /* those variables to log T_GNB_PHY_PUCCH_PUSCH_IQ only when we try to decode */
   int pucch_decode_done = 0;
   int pusch_decode_done = 0;
@@ -1026,35 +1189,12 @@ int phy_procedures_gNB_uespec_RX(PHY_VARS_gNB *gNB, int frame_rx, int slot_rx)
 
   for (int i = 0; i < gNB->max_nb_srs; i++) {
     NR_gNB_SRS_t *srs = &gNB->srs[i];
+    //printf("[PALOMA HACK] SRS %d\n", i);
 
     if (srs) {
 
       if ((srs->active == 1) && (srs->frame == frame_rx) && (srs->slot == slot_rx)) {
         printf("[PALOMA HACK] srs->active = %d, srs->frame = %d, srs->slot = %d\n", srs->active, srs->frame, srs->slot);
-
-        /*
-        if (save == 0){
-          save_to_file(srs, "srs_struct_data.bin");
-          save = 1;
-        }
-       
-
-        if (save == 0){
-          save_to_file_gnb(gNB, "gnb_struct_data.bin");
-          save = 1;
-        }
-        */
-
-        uint16_t pre_rnti = srs->srs_pdu.rnti;
-
-        if (!srs){
-          if (load == 0){
-              load_from_file(srs, "srs_struct_data.bin");
-              load = 1;
-            }
-        }
-
-        srs->srs_pdu.rnti = pre_rnti;
 
         LOG_D(NR_PHY, "(%d.%d) gNB is waiting for SRS, id = %i\n", frame_rx, slot_rx, i);
 
@@ -1075,6 +1215,28 @@ int phy_procedures_gNB_uespec_RX(PHY_VARS_gNB *gNB, int frame_rx, int slot_rx)
           generate_srs_nr(srs_pdu, frame_parms, gNB->nr_srs_info[i]->srs_generated_signal, 0, gNB->nr_srs_info[i], AMP, frame_rx, slot_rx);
         }
         stop_meas(&gNB->generate_srs_stats);
+
+        if (save == 0){
+          printf("[PALOMA HACK] save SRS = %d\n", i);
+          char filename[64]; // Allocate enough space for the filename
+          snprintf(filename, sizeof(filename), "srs_gen_sig_complex_%d.bin", i); 
+          save_complex_array(filename, gNB->nr_srs_info[i]->srs_generated_signal);
+          printf("[PALOMA HACK] saved SRS = %d\n", i);
+
+          /*
+          snprintf(filename, sizeof(filename), "srs_struct_data_%d.bin", i); 
+          save_to_file_srs(srs, filename);
+          snprintf(filename, sizeof(filename), "srs_info_%d.bin", i); 
+          save_srs_info_to_binary_file(gNB->nr_srs_info[i], filename);
+          snprintf(filename, sizeof(filename), "srs_generated_signal_%d.bin", i); 
+          save_srs_generated_signal_to_binary_file(gNB->nr_srs_info[i]->srs_generated_signal, gNB->frame_parms.nb_antennas_rx, gNB->frame_parms.ofdm_symbol_size*(1<<gNB->nr_srs_info[i]->srs_pdu.num_symbols), filename);
+          snprintf(filename, sizeof(filename), "srs_pdu_%d.bin", i); 
+          save_srs_pdu_from_binary_file(&gNB->nr_srs_info[i]->srs_pdu, filename);
+          */
+          save = 1;
+          
+        }
+        
 
         start_meas(&gNB->get_srs_signal_stats);
         int srs_est = nr_get_srs_signal(gNB, frame_rx, slot_rx, srs_pdu, gNB->nr_srs_info[i], srs_received_signal);

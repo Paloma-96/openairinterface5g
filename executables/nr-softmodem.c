@@ -84,8 +84,8 @@ unsigned short config_frames[4] = {2,9,11,13};
 #include <E2_AGENT/e2_agent_app.h>
 
 // PALOMA HACK
-#define LENGHT_SRS_UL_TOA_HISTORY 50
-int32_t srs_ul_toa_array[LENGHT_SRS_UL_TOA_HISTORY];  
+#define LENGTH_SRS_UL_TOA_HISTORY 1
+int32_t srs_ul_toa_array[LENGTH_SRS_UL_TOA_HISTORY];  
 
 
 pthread_cond_t nfapi_sync_cond;
@@ -646,7 +646,7 @@ int main( int argc, char **argv ) {
   
   // PALOMA HACK
   //printf("[PALOMA HACK] Initializing array for SRS UL TOA estimation to -1 \n");
-  for (int i = 0; i < LENGHT_SRS_UL_TOA_HISTORY; i++) {
+  for (int i = 0; i < LENGTH_SRS_UL_TOA_HISTORY; i++) {
     srs_ul_toa_array[i] = -1;
   }
 

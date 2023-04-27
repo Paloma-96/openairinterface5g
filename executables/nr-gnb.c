@@ -110,8 +110,8 @@ time_stats_t softmodem_stats_rx_sf; // total rx time
 #define L1STATSSTRLEN 16384
 
 // PALOMA HACK
-#define LENGHT_SRS_UL_TOA_HISTORY 50
-extern int32_t srs_ul_toa_array[LENGHT_SRS_UL_TOA_HISTORY];  
+#define LENGTH_SRS_UL_TOA_HISTORY 1
+extern int32_t srs_ul_toa_array[LENGTH_SRS_UL_TOA_HISTORY];  
 
 void tx_func(void *param) {
 
