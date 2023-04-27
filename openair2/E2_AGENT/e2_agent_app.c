@@ -16,7 +16,7 @@
 
 
 extern RAN_CONTEXT_t RC;
-
+char *OUT_ADDR = "10.75.10.31";
 int agent_task_created = 0;
 pthread_t heartbeat_thread; // heartbeat has a mutex to easily stop heartbeat messages if needed (just lock the mutex)
 
@@ -52,7 +52,8 @@ int e2_agent_init(){
     memset(&(agent_info->in_sockaddr), 0, sizeof(agent_info->in_sockaddr));
 
     agent_info->out_sockaddr.sin_family = AF_INET;
-    agent_info->out_sockaddr.sin_addr.s_addr = INADDR_ANY;
+    //agent_info->out_sockaddr.sin_addr.s_addr = INADDR_ANY;
+    inet_pton(AF_INET, OUT_ADDR, &(agent_info->out_sockaddr.sin_addr));
     agent_info->out_sockaddr.sin_port = htons(E2AGENT_OUT_PORT);
 
     agent_info->in_sockaddr.sin_family = AF_INET;

@@ -42,7 +42,7 @@
 
 #define NO_INTERP 1
 #define dBc(x,y) (dB_fixed(((int32_t)(x))*(x) + ((int32_t)(y))*(y)))
-extern uint32_t my_signal_power;
+extern uint32_t my_snr;
 
 /* Generic function to find the peak of channel estimation buffer */
 void peak_estimator(int32_t *buffer, int32_t buf_len, int32_t *peak_idx)
@@ -935,7 +935,7 @@ int nr_srs_channel_estimation(const PHY_VARS_gNB *gNB,
   uint32_t signal_power = calc_power(ch_real,frame_parms->nb_antennas_rx*N_ap*M_sc_b_SRS)
                           + calc_power(ch_imag,frame_parms->nb_antennas_rx*N_ap*M_sc_b_SRS);
 
-  my_signal_power = signal_power;
+  //my_signal_power = signal_power;
 #ifdef SRS_DEBUG
   LOG_I(NR_PHY,"signal_power = %u\n", signal_power);
 #endif
@@ -944,7 +944,7 @@ int nr_srs_channel_estimation(const PHY_VARS_gNB *gNB,
     //LOG_W(NR_PHY, "Received SRS signal power is 0\n");
     return -1;
   } else {
-    printf("[PALOMA HACK] Received SRS signal power is %u\n", signal_power);
+    //printf("[PALOMA HACK] Received SRS signal power is %u\n", signal_power);
   }
 
   // Compute noise power
@@ -993,6 +993,9 @@ int nr_srs_channel_estimation(const PHY_VARS_gNB *gNB,
                              + calc_power(noise_imag,frame_parms->nb_antennas_rx*N_ap*M_sc_b_SRS), 1);
 
   *snr = dB_fixed((int32_t)((signal_power<<factor_bits)/(noise_power))) - factor_dB;
+
+  printf("[PALOMA HACK] signal power = %u, noise_power = %u, SNR = %i dB\n", signal_power, noise_power, *snr);
+  my_snr = *snr;
 
 #ifdef SRS_DEBUG
   LOG_I(NR_PHY,"noise_power = %u, SNR = %i dB\n", noise_power, *snr);

@@ -10,7 +10,7 @@
 extern RAN_CONTEXT_t RC;
 extern PHY_VARS_NR_UE*** PHY_vars_UE_g;
 
-int gnb_id = 0;
+int gnb_id = 1;
 int something = 0;
 
 int32_t ue = 0;
@@ -19,6 +19,7 @@ int32_t ue = 0;
 #define LENGTH_SRS_UL_TOA_HISTORY 1
 #define SYMB_SIZE 2048
 extern int32_t srs_ul_toa_array[LENGTH_SRS_UL_TOA_HISTORY];
+extern int8_t my_snr;
 
 void handle_subscription(RANMessage* in_mess)
 {
@@ -358,7 +359,7 @@ ToaM* get_toa()
   double diff =0;
 
   for (int i = 0; i < LENGTH_SRS_UL_TOA_HISTORY; i++) {
-    //printf("[PALOMA HACK] srs_ul_toa_array[%d] = %d\n", i, srs_ul_toa_array[i]);
+    printf("[PALOMA HACK] srs_ul_toa_array[%d] = %d\n", i, srs_ul_toa_array[i]);
     //printf("[PALOMA HACK] SYMB_SIZE = %d\n", SYMB_SIZE);
     if (srs_ul_toa_array[i] != -1 && (srs_ul_toa_array[i] < 48 || srs_ul_toa_array[i] > 2000)) { // check if element is valid
       if (srs_ul_toa_array[i] > SYMB_SIZE/2) {
@@ -366,12 +367,12 @@ ToaM* get_toa()
       } else {
         diff = fabs(srs_ul_toa_array[i]);
       }
-      //printf("[PALOMA HACK] diff = %f\n", diff);
+      printf("[PALOMA HACK] diff = %f\n", diff);
 
       sum += diff; // add to sum
-      //printf("[PALOMA HACK] sum = %f\n", sum);
+      printf("[PALOMA HACK] sum = %f\n", sum);
       count++; // increment count
-      //printf("[PALOMA HACK] count = %d\n", count);
+      printf("[PALOMA HACK] count = %d\n", count);
     }
   }
 
@@ -393,6 +394,10 @@ ToaM* get_toa()
   printf("[PALOMA HACK] set TOA: %f\n", mean);
 
   toa_m->toa_val = mean;
+
+  printf("[PALOMA HACK] set SNR: %f\n", my_snr);
+
+  toa_m->snr = my_snr;
   //free(toa_val_list);
   return toa_m;
 }

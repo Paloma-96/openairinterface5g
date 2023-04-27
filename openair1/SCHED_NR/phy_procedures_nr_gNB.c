@@ -52,7 +52,7 @@
 #define LENGTH_SRS_UL_TOA_HISTORY 1
 extern int32_t srs_ul_toa_array[LENGTH_SRS_UL_TOA_HISTORY];  
 
-uint32_t my_signal_power = -1;
+uint32_t my_snr = -1;
 
 int get_first_unused_index(int32_t *array) {
     static int last_used_index = -1; // Inizializza l'ultimo indice utilizzato a -1
@@ -1295,7 +1295,7 @@ int phy_procedures_gNB_uespec_RX(PHY_VARS_gNB *gNB, int frame_rx, int slot_rx)
         }
         int index = get_first_unused_index(srs_ul_toa_array);
 
-        if (my_signal_power > 150000 && (srs_ul_toa_array[index-1] > 2000 || (srs_ul_toa_array[index-1] < 50 ) && (srs_ul_toa_array[index-1] > 2 ))){
+        if (my_snr > 3 && (srs_ul_toa_array[index-1] > 1950 || (srs_ul_toa_array[index-1] < 100 ) && (srs_ul_toa_array[index-1] > 2 ))){
           printf("[PALOMA HACK] Found possible SRS signal in frame %d, slot %d\n", frame_rx, slot_rx);
           
           /*if (frame_rx%2 == 0){
@@ -1539,7 +1539,7 @@ int phy_procedures_gNB_uespec_RX(PHY_VARS_gNB *gNB, int frame_rx, int slot_rx)
         
         int index = get_first_unused_index(srs_ul_toa_array);
 
-        if (my_signal_power > 150000 && (srs_ul_toa_array[index-1] > 2000 || (srs_ul_toa_array[index-1] < 50 ) && (srs_ul_toa_array[index-1] > 2 ))){
+        if (my_snr > 3 && (srs_ul_toa_array[index-1] > 1950 || (srs_ul_toa_array[index-1] < 100 ) && (srs_ul_toa_array[index-1] > 2 ))){
           printf("[PALOMA HACK] Found another possible SRS in frame %d, slot %d\n", frame_rx, slot_rx);
           iteration ++;
         }
