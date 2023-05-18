@@ -1729,7 +1729,6 @@ int phy_procedures_gNB_uespec_RX(PHY_VARS_gNB *gNB, int frame_rx, int slot_rx)
         stop_meas(&gNB->rx_srs_stats);
       
       }
-      }
     }
   }
   
