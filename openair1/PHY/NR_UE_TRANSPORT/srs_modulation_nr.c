@@ -241,7 +241,29 @@ int generate_srs_nr(nfapi_nr_srs_pdu_t *srs_config_pdu,
   LOG_I(NR_PHY,"m_SRS_b = %i\n", m_SRS_b);
   LOG_I(NR_PHY,"M_sc_b_SRS = %i\n", M_sc_b_SRS);
 #endif
-
+  /* print all srs config pdu parameters
+  printf("SRS config pdu parameters:\n");
+  printf("B_SRS = %i\n", B_SRS);
+  printf("C_SRS = %i\n", C_SRS);
+  printf("b_hop = %i\n", b_hop);
+  printf("K_TC = %i\n", K_TC);
+  printf("K_TC_overbar = %i\n", K_TC_overbar);
+  printf("n_SRS_cs = %i\n", n_SRS_cs);
+  printf("n_ID_SRS = %i\n", n_ID_SRS);
+  printf("n_shift = %i\n", n_shift);
+  printf("n_RRC = %i\n", n_RRC);
+  printf("groupOrSequenceHopping = %i\n", groupOrSequenceHopping);
+  printf("l_offset = %i\n", l_offset);
+  printf("T_SRS = %i\n", T_SRS);
+  printf("T_offset = %i\n", T_offset);
+  printf("R = %i\n", R);
+  printf("N_ap = %i\n", N_ap);
+  printf("N_symb_SRS = %i\n", N_symb_SRS);
+  printf("l0 = %i\n", l0);
+  printf("n_SRS_cs_max = %i\n", n_SRS_cs_max);
+  printf("m_SRS_b = %i\n", m_SRS_b);
+  printf("M_sc_b_SRS = %i\n", M_sc_b_SRS);
+  */
   // Validation of SRS config parameters
 
   if (R == 0) {

@@ -1223,7 +1223,7 @@ int phy_procedures_gNB_uespec_RX(PHY_VARS_gNB *gNB, int frame_rx, int slot_rx)
     
     if (srs) {
       //if ((srs->active == 1) && (srs->frame == frame_rx) && (srs->slot == slot_rx)) {
-      if (first_frame_founded == 0){
+      if ((first_frame_founded == 0) && (slot_rx == 8)) {
 
         if (true) { //((srs->slot == slot_rx)) {
         
@@ -1487,8 +1487,7 @@ int phy_procedures_gNB_uespec_RX(PHY_VARS_gNB *gNB, int frame_rx, int slot_rx)
       
       }
       } 
-      else{
-        if ((frame_rx == first_frame_founded + 8 * iteration) && (srs->slot == slot_rx)) {
+      else if ((frame_rx == first_frame_founded + 4 * iteration) && (srs->slot == slot_rx)) {
         
         printf("[PALOMA HACK] 2 first_frame_founded = %d, iteration = %d, frame_rx = %d, slot_rx = %d\n", first_frame_founded, iteration, frame_rx, slot_rx);
 
