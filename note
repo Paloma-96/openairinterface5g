@@ -97,7 +97,7 @@ oai di eugenio è abbastanza aggiornata (1 dec 2022) branch gbr-sps-xapp
     enum RAN_parameter{
         GNB_ID = 1;
         SOMETHING = 2;
-    }
+    }note
 
     message RAN_param_map_entry{
         required RAN_parameter key = 1;
@@ -197,3 +197,26 @@ sulla porta 7000 sm connector attende che la logic invii un buffer da iniettare 
 
 array non viene passato da gnb a xapp, conviene che faccio la media dei valori e mando quella, ogni volta mando la media di tutti i valori che ho,
 ridurre dimensione array a 50 cosi seguo l'utente se toa cambia
+
+
+SRS CONFIG params
+  uint8_t B_SRS = srs_config_pdu->bandwidth_index;                                                              0
+  uint8_t C_SRS = srs_config_pdu->config_index;                                                                 25
+  uint8_t b_hop = srs_config_pdu->frequency_hopping;                                                            0
+  uint8_t K_TC = 2<<srs_config_pdu->comb_size;                                                                  2
+  uint8_t K_TC_overbar = srs_config_pdu->comb_offset;                                                           0
+  uint8_t n_SRS_cs = srs_config_pdu->cyclic_shift;                                                              0
+  uint8_t n_ID_SRS = srs_config_pdu->sequence_id;                                                               40
+  uint8_t n_shift = srs_config_pdu->frequency_position;                                                         0
+  uint8_t n_RRC = srs_config_pdu->frequency_shift;                                                              0
+  uint8_t groupOrSequenceHopping = srs_config_pdu->group_or_sequence_hopping;                                   0
+  uint8_t l_offset = srs_config_pdu->time_start_position;                                                       1
+  uint16_t T_SRS = srs_config_pdu->t_srs;                                                                       160
+  uint16_t T_offset = srs_config_pdu->t_offset;                                                                 8
+  uint8_t R = 1<<srs_config_pdu->num_repetitions;                                                               1
+  uint8_t N_ap = 1<<srs_config_pdu->num_ant_ports;            // Number of antenna port for transmission        1
+  uint8_t N_symb_SRS = 1<<srs_config_pdu->num_symbols;        // Number of consecutive OFDM symbols             1
+  uint8_t l0 = frame_parms->symbols_per_slot - 1 - l_offset;  // Starting symbol position in the time domain    12
+  uint8_t n_SRS_cs_max = srs_max_number_cs[srs_config_pdu->comb_size];                                          8
+  uint16_t m_SRS_b = srs_bandwidth_config[C_SRS][B_SRS][0];   // Number of resource blocks                      104
+  uint16_t M_sc_b_SRS = m_SRS_b * NR_NB_SC_PER_RB/K_TC;       // Length of the SRS sequence                     624

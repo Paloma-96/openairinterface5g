@@ -241,6 +241,7 @@ int generate_srs_nr(nfapi_nr_srs_pdu_t *srs_config_pdu,
   LOG_I(NR_PHY,"m_SRS_b = %i\n", m_SRS_b);
   LOG_I(NR_PHY,"M_sc_b_SRS = %i\n", M_sc_b_SRS);
 #endif
+ 
 
   // Validation of SRS config parameters
 
