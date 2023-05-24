@@ -925,7 +925,6 @@ int nr_srs_channel_estimation(const PHY_VARS_gNB *gNB,
                    gNB->frame_parms.ofdm_symbol_size,
                    ul_srs_toa);
 
-
     } // for (int p_index = 0; p_index < N_ap; p_index++)
   } // for (int ant = 0; ant < frame_parms->nb_antennas_rx; ant++)
 
@@ -993,9 +992,8 @@ int nr_srs_channel_estimation(const PHY_VARS_gNB *gNB,
   *snr = dB_fixed((int32_t)((signal_power<<factor_bits)/(noise_power))) - factor_dB;
 
   my_snr = *snr;
-  if ((*snr > 3) && (*ul_srs_toa > 0)){
-    printf("[PALOMA HACK] SRS TOA = [%d]\n", *ul_srs_toa); 
-    printf("[PALOMA HACK] signal power = %u, noise_power = %u, SNR = %i dB\n", signal_power, noise_power, *snr);
+  if ((*snr > -1) && (*ul_srs_toa > 0)){
+    printf("[PALOMA HACK] SRS TOA = [%d], SNR = %i dB\n", *ul_srs_toa, *snr); 
   }
 
 #ifdef SRS_DEBUG

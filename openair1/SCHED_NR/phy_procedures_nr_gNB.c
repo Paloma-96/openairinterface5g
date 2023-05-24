@@ -1223,7 +1223,7 @@ int phy_procedures_gNB_uespec_RX(PHY_VARS_gNB *gNB, int frame_rx, int slot_rx)
     
     if (srs) {
       //if ((srs->active == 1) && (srs->frame == frame_rx) && (srs->slot == slot_rx)) {
-      if ((first_frame_founded == 0) && (slot_rx == 8)) {
+      if ((first_frame_founded == 0) && ((slot_rx == 8) || (slot_rx == 9) || (slot_rx == 18))) {
 
         if (true) { //((srs->slot == slot_rx)) {
         
@@ -1278,6 +1278,7 @@ int phy_procedures_gNB_uespec_RX(PHY_VARS_gNB *gNB, int frame_rx, int slot_rx)
           start_meas(&gNB->srs_channel_estimation_stats);
           //printf("[PALOMA HACK] nr srs channel estimation\n");
           int index = get_first_unused_index(srs_ul_toa_array);
+          //printf("[PALOMA HACK] index pre = %d\n", index);
           nr_srs_channel_estimation(gNB,
                                     frame_rx,
                                     slot_rx,
@@ -1292,12 +1293,18 @@ int phy_procedures_gNB_uespec_RX(PHY_VARS_gNB *gNB, int frame_rx, int slot_rx)
                                     &snr,
                                     &srs_ul_toa_array[index]);
           stop_meas(&gNB->srs_channel_estimation_stats);
+
         }
         int index = get_first_unused_index(srs_ul_toa_array);
 
         //if (my_snr > 3 && (srs_ul_toa_array[index-1] > 1950 || (srs_ul_toa_array[index-1] < 100 ) && (srs_ul_toa_array[index-1] > 2 ))){
-        if (my_snr > 3  && srs_ul_toa_array[index-1] > 0){
+        if (my_snr > -1  && srs_ul_toa_array[index] > 0){
+          printf("----------------------------------------------------------------------------------\n");
+
           printf("[PALOMA HACK] Found possible SRS signal in frame %d, slot %d\n", frame_rx, slot_rx);
+          printf("[PALOMA HACK] srs_ul_toa_array[index] = %d, my_snr = %f\n", srs_ul_toa_array[index], my_snr);
+          printf("----------------------------------------------------------------------------------\n");
+
           
           /*if (frame_rx%2 == 0){
             first_frame_founded = frame_rx;
@@ -1487,7 +1494,7 @@ int phy_procedures_gNB_uespec_RX(PHY_VARS_gNB *gNB, int frame_rx, int slot_rx)
       
       }
       } 
-      else if ((frame_rx == first_frame_founded + 4 * iteration) && (srs->slot == slot_rx)) {
+      else if ((frame_rx == first_frame_founded + 4 * iteration) && ((slot_rx == 8) || (slot_rx == 9) || (slot_rx == 18))) {
         
         printf("[PALOMA HACK] 2 first_frame_founded = %d, iteration = %d, frame_rx = %d, slot_rx = %d\n", first_frame_founded, iteration, frame_rx, slot_rx);
 
@@ -1540,9 +1547,9 @@ int phy_procedures_gNB_uespec_RX(PHY_VARS_gNB *gNB, int frame_rx, int slot_rx)
         int index = get_first_unused_index(srs_ul_toa_array);
 
         //if (my_snr > 3 && (srs_ul_toa_array[index-1] > 1950 || (srs_ul_toa_array[index-1] < 100 ) && (srs_ul_toa_array[index-1] > 2 ))){
-        if (my_snr > 3  && srs_ul_toa_array[index-1] > 0){
+        if (my_snr > 3  && srs_ul_toa_array[index] > 0){
           printf("[PALOMA HACK] Found another possible SRS in frame %d, slot %d\n", frame_rx, slot_rx);
-          printf("[PALOMA HACK] SRS TOA = %d\n", srs_ul_toa_array[index-1]);
+          printf("[PALOMA HACK] SRS TOA = %d\n", srs_ul_toa_array[index]);
           iteration ++;
         }
         else{
