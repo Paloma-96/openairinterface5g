@@ -361,18 +361,19 @@ ToaM* get_toa()
   for (int i = 0; i < LENGTH_SRS_UL_TOA_HISTORY; i++) {
     printf("[PALOMA HACK] srs_ul_toa_array[%d] = %d\n", i, srs_ul_toa_array[i]);
     //printf("[PALOMA HACK] SYMB_SIZE = %d\n", SYMB_SIZE);
-    if (srs_ul_toa_array[i] != -1 && (srs_ul_toa_array[i] < 48 || srs_ul_toa_array[i] > 2000)) { // check if element is valid
+    //if (srs_ul_toa_array[i] != -1 && (srs_ul_toa_array[i] < 48 || srs_ul_toa_array[i] > 2000)) { // check if element is valid
+    if (srs_ul_toa_array[i] > 0) { // check if element is valid
       if (srs_ul_toa_array[i] > SYMB_SIZE/2) {
         diff = fabs(srs_ul_toa_array[i] - SYMB_SIZE);
       } else {
         diff = fabs(srs_ul_toa_array[i]);
       }
-      printf("[PALOMA HACK] diff = %f\n", diff);
+      //printf("[PALOMA HACK] diff = %f\n", diff);
 
       sum += diff; // add to sum
-      printf("[PALOMA HACK] sum = %f\n", sum);
+      //printf("[PALOMA HACK] sum = %f\n", sum);
       count++; // increment count
-      printf("[PALOMA HACK] count = %d\n", count);
+      //printf("[PALOMA HACK] count = %d\n", count);
     }
   }
 
