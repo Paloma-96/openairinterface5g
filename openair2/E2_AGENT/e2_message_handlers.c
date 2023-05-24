@@ -362,7 +362,7 @@ ToaM* get_toa()
     //printf("[PALOMA HACK] srs_ul_toa_array[%d] = %d\n", i, srs_ul_toa_array[i]);
     //printf("[PALOMA HACK] SYMB_SIZE = %d\n", SYMB_SIZE);
     //if (srs_ul_toa_array[i] != -1 && (srs_ul_toa_array[i] < 48 || srs_ul_toa_array[i] > 2000)) { // check if element is valid
-    if (srs_ul_toa_array[i] > 0) { // check if element is valid
+    if (srs_ul_toa_array[i] > -1) { // check if element is valid
       if (srs_ul_toa_array[i] > SYMB_SIZE/2) {
         diff = fabs(srs_ul_toa_array[i] - SYMB_SIZE);
       } else {
