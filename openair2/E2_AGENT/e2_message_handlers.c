@@ -10,7 +10,7 @@
 extern RAN_CONTEXT_t RC;
 extern PHY_VARS_NR_UE*** PHY_vars_UE_g;
 
-int gnb_id = 2;
+int gnb_id = 1;
 int something = 0;
 
 int32_t ue = 0;
@@ -362,7 +362,7 @@ ToaM* get_toa()
     printf("[PALOMA HACK] srs_ul_toa_array[%d] = %d\n", i, srs_ul_toa_array[i]);
     //printf("[PALOMA HACK] SYMB_SIZE = %d\n", SYMB_SIZE);
     //if (srs_ul_toa_array[i] != -1 && (srs_ul_toa_array[i] < 48 || srs_ul_toa_array[i] > 2000)) { // check if element is valid
-    if (srs_ul_toa_array[i] > 0) { // check if element is valid
+    if (srs_ul_toa_array[i] > -1) { // check if element is valid
       if (srs_ul_toa_array[i] > SYMB_SIZE/2) {
         diff = fabs(srs_ul_toa_array[i] - SYMB_SIZE);
       } else {
@@ -396,7 +396,7 @@ ToaM* get_toa()
 
   toa_m->toa_val = mean;
 
-  printf("[PALOMA HACK] set SNR: %f\n", my_snr);
+  printf("[PALOMA HACK] set SNR: %d\n", my_snr);
 
   toa_m->snr = my_snr;
   //free(toa_val_list);
