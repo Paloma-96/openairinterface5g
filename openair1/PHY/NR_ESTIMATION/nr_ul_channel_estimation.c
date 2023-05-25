@@ -992,7 +992,7 @@ int nr_srs_channel_estimation(const PHY_VARS_gNB *gNB,
   *snr = dB_fixed((int32_t)((signal_power<<factor_bits)/(noise_power))) - factor_dB;
 
   my_snr = *snr;
-  if ((*snr > -1) && (*ul_srs_toa > 0)){
+  if ((*snr > 0) && (*ul_srs_toa > 0)){
     printf("[PALOMA HACK] SRS TOA = [%d], SNR = %i dB\n", *ul_srs_toa, *snr); 
   }
 

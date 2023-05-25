@@ -1298,7 +1298,7 @@ int phy_procedures_gNB_uespec_RX(PHY_VARS_gNB *gNB, int frame_rx, int slot_rx)
         int index = get_first_unused_index(srs_ul_toa_array);
 
         //if (my_snr > 3 && (srs_ul_toa_array[index-1] > 1950 || (srs_ul_toa_array[index-1] < 100 ) && (srs_ul_toa_array[index-1] > 2 ))){
-        if (my_snr > -1  && srs_ul_toa_array[index] > 0){
+        if (my_snr > 0  && srs_ul_toa_array[index] > 0){
           printf("----------------------------------------------------------------------------------\n");
 
           printf("[PALOMA HACK] Found possible SRS signal in frame %d, slot %d\n", frame_rx, slot_rx);
@@ -1547,7 +1547,7 @@ int phy_procedures_gNB_uespec_RX(PHY_VARS_gNB *gNB, int frame_rx, int slot_rx)
         int index = get_first_unused_index(srs_ul_toa_array);
 
         //if (my_snr > 3 && (srs_ul_toa_array[index-1] > 1950 || (srs_ul_toa_array[index-1] < 100 ) && (srs_ul_toa_array[index-1] > 2 ))){
-        if (my_snr > -1  && srs_ul_toa_array[index] > 0){
+        if (my_snr > 0  && srs_ul_toa_array[index] > 0){
           printf("[PALOMA HACK] Found another possible SRS in frame %d, slot %d\n", frame_rx, slot_rx);
           printf("[PALOMA HACK] SRS TOA = %d\n", srs_ul_toa_array[index]);
           iteration ++;
