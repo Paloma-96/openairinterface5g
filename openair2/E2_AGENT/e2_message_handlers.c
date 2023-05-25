@@ -10,7 +10,7 @@
 extern RAN_CONTEXT_t RC;
 extern PHY_VARS_NR_UE*** PHY_vars_UE_g;
 
-int gnb_id = 2;
+int gnb_id = 1;
 int something = 0;
 
 int32_t ue = 0;
