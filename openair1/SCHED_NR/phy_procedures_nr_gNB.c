@@ -49,7 +49,11 @@
 
 // PALOMA HACK
 #define LENGTH_SRS_UL_TOA_HISTORY 1
-extern int32_t srs_ul_toa_array[LENGTH_SRS_UL_TOA_HISTORY];  
+#define NUMBER_USRP_RU 3
+
+extern int32_t srs_ul_toa_array[NUMBER_USRP_RU];
+extern int32_t srs_ul_toa_snr_array[NUMBER_USRP_RU];
+
 int8_t my_snr = -1;
 
 int get_first_unused_index(int32_t *array) {
@@ -1194,8 +1198,8 @@ int phy_procedures_gNB_uespec_RX(PHY_VARS_gNB *gNB, int frame_rx, int slot_rx)
     if (srs) {
 
       if ((srs->active == 1) && (srs->frame == frame_rx) && (srs->slot == slot_rx)) {
-        printf("[PALOMA HACK] srs->active = %d, srs->frame = %d, srs->slot = %d\n", srs->active, srs->frame, srs->slot);
-
+        //printf("[PALOMA HACK] srs->active = %d, srs->frame = %d, srs->slot = %d\n", srs->active, srs->frame, srs->slot);
+        printf("\n [PALOMA HACK] SRS TOA estimation ---------------------------------------------------------\n");
         LOG_D(NR_PHY, "(%d.%d) gNB is waiting for SRS, id = %i\n", frame_rx, slot_rx, i);
 
         start_meas(&gNB->rx_srs_stats);
@@ -1245,7 +1249,7 @@ int phy_procedures_gNB_uespec_RX(PHY_VARS_gNB *gNB, int frame_rx, int slot_rx)
         if (srs_est >= 0) {
           start_meas(&gNB->srs_channel_estimation_stats);
           //printf("[PALOMA HACK] nr srs channel estimation\n");
-          int index = get_first_unused_index(srs_ul_toa_array);
+          //int index = get_first_unused_index(srs_ul_toa_array);
           nr_srs_channel_estimation(gNB,
                                     frame_rx,
                                     slot_rx,
@@ -1258,7 +1262,8 @@ int phy_procedures_gNB_uespec_RX(PHY_VARS_gNB *gNB, int frame_rx, int slot_rx)
                                     srs_estimated_channel_time_shifted,
                                     snr_per_rb,
                                     &snr,
-                                    &srs_ul_toa_array[index]);
+                                    srs_ul_toa_array,
+                                    srs_ul_toa_snr_array);
           stop_meas(&gNB->srs_channel_estimation_stats);
         }
 

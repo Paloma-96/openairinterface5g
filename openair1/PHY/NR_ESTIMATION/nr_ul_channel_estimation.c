@@ -40,6 +40,11 @@
 //#define DEBUG_PUSCH
 //#define SRS_DEBUG
 
+#define LENGTH_SRS_UL_TOA_HISTORY 1
+#define NUMBER_USRP_RU 3
+extern int32_t srs_ul_toa_array[NUMBER_USRP_RU];  
+extern int32_t srs_ul_toa_snr_array[NUMBER_USRP_RU];  
+
 #define NO_INTERP 1
 #define dBc(x,y) (dB_fixed(((int32_t)(x))*(x) + ((int32_t)(y))*(y)))
 extern int8_t my_snr;
@@ -58,6 +63,11 @@ void peak_estimator(int32_t *buffer, int32_t buf_len, int32_t *peak_idx)
       max_idx = k;
     }
   }
+  // Scaling
+  if (max_idx > buf_len/2) {
+    max_idx= buf_len - max_idx;
+  }
+
   *peak_idx = max_idx;
 }
 
@@ -697,7 +707,8 @@ int nr_srs_channel_estimation(const PHY_VARS_gNB *gNB,
                               int32_t srs_estimated_channel_time_shifted[][1<<srs_pdu->num_ant_ports][gNB->frame_parms.ofdm_symbol_size],
                               int8_t *snr_per_rb,
                               int8_t *snr,
-                              int32_t *ul_srs_toa) {
+                              int32_t *srs_ul_toa_array,
+                              int32_t *srs_ul_toa_snr_array) {
 
 #ifdef SRS_DEBUG
   LOG_I(NR_PHY,"Calling %s function\n", __FUNCTION__);
@@ -924,9 +935,11 @@ int nr_srs_channel_estimation(const PHY_VARS_gNB *gNB,
       //printf("[PALOMA HACK] peak_estimator \n");
       peak_estimator(srs_estimated_channel_time[ant][p_index],
                    gNB->frame_parms.ofdm_symbol_size,
-                   ul_srs_toa);
-      if (*ul_srs_toa > 0){
-        printf("[PALOMA HACK] SRS TOA = [%d]\n", *ul_srs_toa); 
+                   &srs_ul_toa_array[ant]);
+      //printf("[PALOMA HACK] P_index = %d, Antenna = %d\n", p_index, ant);
+    
+      if (srs_ul_toa_array[ant] > 0){
+        printf("[PALOMA HACK] SRS TOA = [%d], Frame = %d, Slot = %d, USRP=%d \n", srs_ul_toa_array[ant], frame, slot, ant);
       }
 
     } // for (int p_index = 0; p_index < N_ap; p_index++)
@@ -952,17 +965,18 @@ int nr_srs_channel_estimation(const PHY_VARS_gNB *gNB,
 
   const uint8_t signal_power_bits = log2_approx(signal_power);
   const uint8_t factor_bits = signal_power_bits < 32 ? 32 - signal_power_bits : 0; // 32 due to input of dB_fixed(uint32_t x)
-  const int32_t factor_dB = dB_fixed(1<<factor_bits);
+  const int32_t factor_dB = dB_fixed(1 << factor_bits);
 
   const uint8_t srs_symbols_per_rb = srs_pdu->comb_size == 0 ? 6 : 3;
-  const uint8_t n_noise_est = frame_parms->nb_antennas_rx*N_ap*srs_symbols_per_rb;
+  const uint8_t n_noise_est = frame_parms->nb_antennas_rx * N_ap * srs_symbols_per_rb;
   uint64_t sum_re = 0;
   uint64_t sum_re2 = 0;
   uint64_t sum_im = 0;
   uint64_t sum_im2 = 0;
 
-  for (int rb = 0; rb < m_SRS_b; rb++) {
+  int temp = 0;
 
+  for (int rb = 0; rb < m_SRS_b; rb++) {
     sum_re = 0;
     sum_re2 = 0;
     sum_im = 0;
@@ -970,34 +984,43 @@ int nr_srs_channel_estimation(const PHY_VARS_gNB *gNB,
 
     for (int ant = 0; ant < frame_parms->nb_antennas_rx; ant++) {
       for (int p_index = 0; p_index < N_ap; p_index++) {
-        uint16_t base_idx = ant*N_ap*M_sc_b_SRS + p_index*M_sc_b_SRS + rb*srs_symbols_per_rb;
+        uint16_t base_idx = ant * N_ap * M_sc_b_SRS + p_index * M_sc_b_SRS + rb * srs_symbols_per_rb;
         for (int srs_symb = 0; srs_symb < srs_symbols_per_rb; srs_symb++) {
-          sum_re = sum_re + noise_real[base_idx+srs_symb];
-          sum_re2 = sum_re2 + noise_real[base_idx+srs_symb]*noise_real[base_idx+srs_symb];
-          sum_im = sum_im + noise_imag[base_idx+srs_symb];
-          sum_im2 = sum_im2 + noise_imag[base_idx+srs_symb]*noise_imag[base_idx+srs_symb];
+          sum_re = sum_re + noise_real[base_idx + srs_symb];
+          sum_re2 = sum_re2 + noise_real[base_idx + srs_symb] * noise_real[base_idx + srs_symb];
+          sum_im = sum_im + noise_imag[base_idx + srs_symb];
+          sum_im2 = sum_im2 + noise_imag[base_idx + srs_symb] * noise_imag[base_idx + srs_symb];
         } // for (int srs_symb = 0; srs_symb < srs_symbols_per_rb; srs_symb++)
       } // for (int p_index = 0; p_index < N_ap; p_index++)
+
+      noise_power_per_rb[rb] = max(sum_re2 / n_noise_est - (sum_re / n_noise_est) * (sum_re / n_noise_est) + sum_im2 / n_noise_est
+                                     - (sum_im / n_noise_est) * (sum_im / n_noise_est),
+                                 1);
+      snr_per_rb[rb] = dB_fixed((int32_t)((signal_power << factor_bits) / noise_power_per_rb[rb])) - factor_dB;
+      
+      uint32_t noise_power = max(calc_power(noise_real, frame_parms->nb_antennas_rx * N_ap * M_sc_b_SRS)
+                                 + calc_power(noise_imag, frame_parms->nb_antennas_rx * N_ap * M_sc_b_SRS),
+                             1);
+
+      *snr = dB_fixed((int32_t)((signal_power << factor_bits) / (noise_power))) - factor_dB;
+      srs_ul_toa_snr_array[ant] = *snr;
+
+      if (temp < frame_parms->nb_antennas_rx) {
+        printf("[PALOMA HACK] signal power=%u, noise_power=%u, SNR=%i dB, USRP=%d\n", signal_power, noise_power, srs_ul_toa_snr_array[ant], ant);
+        temp = temp + 1;
+      }
+
     } // for (int ant = 0; ant < frame_parms->nb_antennas_rx; ant++)
 
-    noise_power_per_rb[rb] = max(sum_re2 / n_noise_est - (sum_re / n_noise_est) * (sum_re / n_noise_est) +
-                                 sum_im2 / n_noise_est - (sum_im / n_noise_est) * (sum_im / n_noise_est), 1);
-    snr_per_rb[rb] = dB_fixed((int32_t)((signal_power<<factor_bits)/noise_power_per_rb[rb])) - factor_dB;
+    
 
 #ifdef SRS_DEBUG
-    LOG_I(NR_PHY,"noise_power_per_rb[%i] = %i, snr_per_rb[%i] = %i dB\n", rb, noise_power_per_rb[rb], rb, snr_per_rb[rb]);
+    LOG_I(NR_PHY, "noise_power_per_rb[%i] = %i, snr_per_rb[%i] = %i dB\n", rb, noise_power_per_rb[rb], rb, snr_per_rb[rb]);
 #endif
 
   } // for (int rb = 0; rb < m_SRS_b; rb++)
 
-  uint32_t noise_power = max(calc_power(noise_real,frame_parms->nb_antennas_rx*N_ap*M_sc_b_SRS)
-                             + calc_power(noise_imag,frame_parms->nb_antennas_rx*N_ap*M_sc_b_SRS), 1);
-
-  *snr = dB_fixed((int32_t)((signal_power<<factor_bits)/(noise_power))) - factor_dB;
-  my_snr = *snr;
-
-  printf("[PALOMA HACK] signal power = %u, noise_power = %u, SNR = %i dB\n", signal_power, noise_power, my_snr);
-
+  
 
 #ifdef SRS_DEBUG
   LOG_I(NR_PHY,"noise_power = %u, SNR = %i dB\n", noise_power, *snr);

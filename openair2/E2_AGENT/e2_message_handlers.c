@@ -16,9 +16,11 @@ int something = 0;
 int32_t ue = 0;
 
 // PALOMA HACK
-#define LENGTH_SRS_UL_TOA_HISTORY 1
 #define SYMB_SIZE 2048
-extern int32_t srs_ul_toa_array[LENGTH_SRS_UL_TOA_HISTORY];
+#define LENGTH_SRS_UL_TOA_HISTORY 1
+#define NUMBER_USRP_RU 3
+extern int32_t srs_ul_toa_array[NUMBER_USRP_RU];  
+extern int32_t srs_ul_toa_snr_array[NUMBER_USRP_RU];  
 extern int8_t my_snr;
 
 void handle_subscription(RANMessage* in_mess)
@@ -354,10 +356,38 @@ ToaM* get_toa()
   //  toa_val_list[i] = srs_ul_toa_array[i];
   //}
 
+
+  toa_m->toa_val = malloc(sizeof(int32_t) * NUMBER_USRP_RU);
+  toa_m->n_toa_val = NUMBER_USRP_RU;  // Update the array size
+  // Check if memory allocation was successful
+  if (toa_m->toa_val == NULL) {
+      // Handle error (for example, log it and/or exit the program)
+      fprintf(stderr, "Memory allocation for toa_m->toa_val failed\n");
+      exit(1);
+  }
+  // Fill the array with values
+  for (size_t i = 0; i < NUMBER_USRP_RU; i++) {
+      toa_m->toa_val[i] = srs_ul_toa_array[i];
+  }
+  toa_m->snr = malloc(sizeof(int32_t) * NUMBER_USRP_RU);
+  toa_m->n_snr = NUMBER_USRP_RU;  // Update the array size
+  // Check if memory allocation was successful
+  if (toa_m->snr == NULL) {
+      // Handle error (for example, log it and/or exit the program)
+      fprintf(stderr, "Memory allocation for toa_m->snr failed\n");
+      exit(1);
+  }
+  // Fill the array with values
+  for (size_t i = 0; i < NUMBER_USRP_RU; i++) {
+      toa_m->snr[i] = srs_ul_toa_snr_array[i];
+  }
+
+
   int count = 0; // count of valid elements
   float sum = 0; // sum of absolute differences
   double diff =0;
 
+  /*
   for (int i = 0; i < LENGTH_SRS_UL_TOA_HISTORY; i++) {
     //printf("[PALOMA HACK] srs_ul_toa_array[%d] = %d\n", i, srs_ul_toa_array[i]);
     //printf("[PALOMA HACK] SYMB_SIZE = %d\n", SYMB_SIZE);
@@ -384,7 +414,7 @@ ToaM* get_toa()
   //for (int i = 0; i < LENGTH_SRS_UL_TOA_HISTORY; i++) {
   //  printf("[PALOMA HACK] toa_val_list[%d] = %d\n", i, toa_val_list[i]);
   //}
-
+  
   
   // insert list toa
   //printf("[PALOMA HACK] malloc toa_list_m->toa_val\n");
@@ -394,12 +424,16 @@ ToaM* get_toa()
 
   printf("[PALOMA HACK] set TOA: %f\n", mean);
 
+  
   toa_m->toa_val = mean;
 
   printf("[PALOMA HACK] set SNR: %d\n", my_snr);
   toa_m->snr = my_snr;
   printf("[PALOMA HACK] set toa_m->snr: %f\n", toa_m->snr);
   //free(toa_val_list);
+  */
+
+  //toa_m->toa_val = srs_ul_toa_array[0];
   return toa_m;
 }
 
@@ -426,7 +460,19 @@ void free_toa(ToaM* toa_m)
 {
   // finally free the outer data structure
   //printf("[PALOMA HACK] free toa_m\n");
+  // free each dynamically allocated array within the struct
+  if (toa_m->toa_val != NULL) {
+    free(toa_m->toa_val);
+    toa_m->toa_val = NULL;  // to prevent a dangling pointer
+  }
+  if (toa_m->snr != NULL) {
+    free(toa_m->snr);
+    toa_m->snr = NULL;  // to prevent a dangling pointer
+  }
+
+  // now free the struct itself
   free(toa_m);
+  toa_m = NULL;  // to prevent a dangling pointer
 }
 
 void ran_read(RANParameter ran_par_enum, RANParamMapEntry* map_entry)

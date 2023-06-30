@@ -85,7 +85,9 @@ unsigned short config_frames[4] = {2,9,11,13};
 
 // PALOMA HACK
 #define LENGTH_SRS_UL_TOA_HISTORY 1
-int32_t srs_ul_toa_array[LENGTH_SRS_UL_TOA_HISTORY];  
+#define NUMBER_USRP_RU 3
+int32_t srs_ul_toa_array[NUMBER_USRP_RU] = {-1, -1, -1};  
+int32_t srs_ul_toa_snr_array[NUMBER_USRP_RU] = {-1, -1, -1};   
 
 
 pthread_cond_t nfapi_sync_cond;

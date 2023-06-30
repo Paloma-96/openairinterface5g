@@ -688,7 +688,16 @@ void rx_rf(RU_t *ru,int *frame,int *slot) {
 	gps_sec,
 	cfg->sample_rate,
         proc->frame_rx,proc->tti_rx,proc->tti_tx,fp->slots_per_frame);
-
+  
+  /*
+  printf("[PALOMA HACK] RU %d/%d TS %ld, GPS %f, SR %f, frame %d, slot %d.%d / %d\n",
+        ru->idx,
+        0,
+        ts, //(unsigned long long int)(proc->timestamp_rx+ru->ts_offset),
+        gps_sec,
+        cfg->sample_rate,
+        proc->frame_rx,proc->tti_rx,proc->tti_tx,fp->slots_per_frame);
+  */
   // dump VCD output for first RU in list
   if (ru == RC.ru[0]) {
     VCD_SIGNAL_DUMPER_DUMP_VARIABLE_BY_NAME( VCD_SIGNAL_DUMPER_VARIABLES_FRAME_NUMBER_RX0_RU, proc->frame_rx );
