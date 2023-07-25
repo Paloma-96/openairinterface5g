@@ -338,33 +338,26 @@ This function performs componentwise multiplication and accumulation of a comple
 
 The function implemented is : \f$\mathbf{y} = y + \alpha\mathbf{x}\f$
 */
-void multadd_real_vector_complex_scalar(int16_t *x,
-                                        int16_t *alpha,
-                                        int16_t *y,
-                                        uint32_t N);
+  void multadd_real_vector_complex_scalar(const int16_t *x, const int16_t *alpha, int16_t *y, uint32_t N);
 
-__attribute__((always_inline)) inline void multadd_real_four_symbols_vector_complex_scalar(int16_t *x,
-                                                                                           c16_t *alpha,
-                                                                                           c16_t *y)
-{
+  __attribute__((always_inline)) inline void multadd_real_four_symbols_vector_complex_scalar(const int16_t *x,
+                                                                                             c16_t *alpha,
+                                                                                             c16_t *y)
+  {
+    // do 8 multiplications at a time
+    const simd_q15_t alpha_r_128 = set1_int16(alpha->r);
+    const simd_q15_t alpha_i_128 = set1_int16(alpha->i);
 
-  // do 8 multiplications at a time
-  simd_q15_t alpha_r_128,alpha_i_128,yr,yi,*x_128=(simd_q15_t*)x;
-  simd_q15_t y_128;
-  y_128 = _mm_loadu_si128((simd_q15_t*)y);
+    const simd_q15_t *x_128 = (const simd_q15_t *)x;
+    const simd_q15_t yr = mulhi_s1_int16(alpha_r_128, *x_128);
+    const simd_q15_t yi = mulhi_s1_int16(alpha_i_128, *x_128);
 
-  alpha_r_128 = set1_int16(alpha->r);
-  alpha_i_128 = set1_int16(alpha->i);
+    simd_q15_t y_128 = _mm_loadu_si128((simd_q15_t *)y);
+    y_128 = _mm_adds_epi16(y_128, _mm_unpacklo_epi16(yr, yi));
+    y_128 = _mm_adds_epi16(y_128, _mm_unpackhi_epi16(yr, yi));
 
-
-  yr     = mulhi_s1_int16(alpha_r_128,x_128[0]);
-  yi     = mulhi_s1_int16(alpha_i_128,x_128[0]);
-  y_128   = _mm_adds_epi16(y_128,_mm_unpacklo_epi16(yr,yi));
-  y_128   = _mm_adds_epi16(y_128,_mm_unpackhi_epi16(yr,yi));
-
-  _mm_storeu_si128((simd_q15_t*)y, y_128);
-
-}
+    _mm_storeu_si128((simd_q15_t *)y, y_128);
+  }
 
 /*!\fn void multadd_complex_vector_real_scalar(int16_t *x,int16_t alpha,int16_t *y,uint8_t zero_flag,uint32_t N)
 This function performs componentwise multiplication and accumulation of a real scalar and a complex vector.
@@ -748,12 +741,7 @@ This function performs componentwise multiplication of a vector with a complex s
 
 The function implemented is : \f$\mathbf{y} = \alpha\mathbf{x}\f$
 */
-void rotate_cpx_vector(c16_t *x,
-                       c16_t *alpha,
-                       c16_t *y,
-                       uint32_t N,
-                       uint16_t output_shift);
-
+void rotate_cpx_vector(const c16_t *const x, const c16_t *const alpha, c16_t *y, uint32_t N, uint16_t output_shift);
 
 //cadd_sv.c
 
@@ -858,6 +846,8 @@ c32_t dot_product(const c16_t *x,
 
 double interp(double x, double *xs, double *ys, int count);
 
+void simde_mm128_separate_real_imag_parts(__m128i *out_re, __m128i *out_im, __m128i in0, __m128i in1);
+void simde_mm256_separate_real_imag_parts(__m256i *out_re, __m256i *out_im, __m256i in0, __m256i in1);
 
 #ifdef __cplusplus
 }

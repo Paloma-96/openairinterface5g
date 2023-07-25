@@ -85,43 +85,6 @@ void init_RA(module_id_t mod_id,
   prach_resources->POWER_OFFSET_2STEP_RA = 0;
   prach_resources->RA_SCALING_FACTOR_BI = 1;
 
-  struct NR_PDCCH_ConfigCommon__commonSearchSpaceList *commonSearchSpaceList;
-  NR_SearchSpaceId_t *ra_ss;
-  NR_SearchSpaceId_t ss_id = -1;
-  NR_SearchSpace_t *ss = NULL;
-
-  if (mac->scc) {
-    NR_SearchSpaceId_t *ra_ss = mac->scc->downlinkConfigCommon->initialDownlinkBWP->pdcch_ConfigCommon->choice.setup->ra_SearchSpace;
-    if (ra_ss) {
-      commonSearchSpaceList = mac->scc->downlinkConfigCommon->initialDownlinkBWP->pdcch_ConfigCommon->choice.setup->commonSearchSpaceList;
-      ss_id = *ra_ss;
-    }
-  } else if (mac->scc_SIB) {
-    NR_SearchSpaceId_t *ra_ss = mac->scc_SIB->downlinkConfigCommon.initialDownlinkBWP.pdcch_ConfigCommon->choice.setup->ra_SearchSpace;
-    if (ra_ss) {
-      commonSearchSpaceList = mac->scc_SIB->downlinkConfigCommon.initialDownlinkBWP.pdcch_ConfigCommon->choice.setup->commonSearchSpaceList;
-      ss_id = *ra_ss;
-    }
-  }
-  if (ss_id < 0) {
-    if (mac->current_DL_BWP.bwp_id>0) {
-      ra_ss = mac->DLbwp[mac->current_DL_BWP.bwp_id-1]->bwp_Common->pdcch_ConfigCommon->choice.setup->ra_SearchSpace;
-      if (ra_ss) {
-        commonSearchSpaceList = mac->DLbwp[mac->current_DL_BWP.bwp_id-1]->bwp_Common->pdcch_ConfigCommon->choice.setup->commonSearchSpaceList;
-        ss_id = *ra_ss;
-      }
-    }
-  }
-
-  AssertFatal(ss_id>-1,"Didn't find ra-SearchSpace\n");
-  AssertFatal(commonSearchSpaceList->list.count > 0, "common SearchSpace list has 0 elements\n");
-  // Common searchspace list
-  for (int i = 0; i < commonSearchSpaceList->list.count; i++) {
-    ss = commonSearchSpaceList->list.array[i];
-    if (ss->searchSpaceId == ss_id)
-      ra->ss = ss;
-  }
-
   if (rach_ConfigDedicated) {
     if (rach_ConfigDedicated->cfra){
       LOG_I(MAC, "Initialization of 2-step contention-free random access procedure\n");
@@ -775,9 +738,7 @@ uint8_t nr_ue_get_rach(module_id_t mod_id,
           ((NR_MAC_SUBHEADER_FIXED *) pdu)->R = 0;
           ((NR_MAC_SUBHEADER_FIXED *) pdu)->LCID = UL_SCH_LCID_PADDING;
           pdu += sizeof(NR_MAC_SUBHEADER_FIXED);
-          for (int j = 0; j < TBS_max - ra->Msg3_size - sizeof(NR_MAC_SUBHEADER_FIXED); j++) {
-            pdu[j] = 0;
-          }
+          memset(pdu, 0, TBS_max - ra->Msg3_size - sizeof(NR_MAC_SUBHEADER_FIXED));
         }
 
         // Dumping ULSCH payload
@@ -933,7 +894,6 @@ void nr_ra_succeeded(const module_id_t mod_id, const uint8_t gNB_index, const fr
 
   if (ra->cfra) {
     LOG_I(MAC, "[UE %d][%d.%d][RAPROC] RA procedure succeeded. CF-RA: RAR successfully received.\n", mod_id, frame, slot);
-    nr_rrc_RA_succeeded(mod_id, gNB_index);
     mac->state = UE_CONNECTED;
     ra->RA_window_cnt = -1;
   } else {
@@ -948,6 +908,7 @@ void nr_ra_succeeded(const module_id_t mod_id, const uint8_t gNB_index, const fr
   LOG_D(MAC, "In %s: [UE %d] clearing RA_active flag...\n", __FUNCTION__, mod_id);
   ra->RA_active = 0;
   ra->ra_state = RA_SUCCEEDED;
+  nr_mac_rrc_ra_ind(mod_id, frame, true);
 }
 
 // Handling failure of RA procedure @ MAC layer

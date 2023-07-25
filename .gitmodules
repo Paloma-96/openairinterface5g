@@ -2,3 +2,7 @@
 	path = openair2/E2_AGENT/oai-oran-protolib
 	url = https://github.com/Paloma-96/oai-oran-protolib.git
 	branch = pos-xapp
+[submodule "openair2/E2AP/flexric"]
+	path = openair2/E2AP/flexric
+	url = https://gitlab.eurecom.fr/mosaic5g/flexric.git
+	branch = remotes/origin/mir_dev

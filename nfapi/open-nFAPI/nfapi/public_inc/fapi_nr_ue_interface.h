@@ -49,6 +49,12 @@ typedef struct {
   uint32_t sr;
 } fapi_nr_uci_pdu_rel15_t;
 
+typedef enum {
+ RLM_no_monitoring = 0,
+ RLM_out_of_sync = 1,
+ RLM_in_sync = 2
+} rlm_t;
+
 typedef struct {
   uint32_t rsrp;
   int rsrp_dBm;
@@ -56,6 +62,7 @@ typedef struct {
   uint8_t i1;
   uint8_t i2;
   uint8_t cqi;
+  rlm_t radiolink_monitoring;
 } fapi_nr_csirs_measurements_t;
 
 typedef struct {
@@ -125,6 +132,7 @@ typedef struct {
   uint16_t cell_id;
   uint16_t ssb_start_subcarrier;
   short rsrp_dBm;
+  rlm_t radiolink_monitoring; // -1 no monitoring, 0 out_of_sync, 1 in_sync
 } fapi_nr_ssb_pdu_t;
 
 typedef struct {
@@ -434,6 +442,9 @@ typedef struct {
   uint16_t start_rb;
   uint16_t number_symbols;
   uint16_t start_symbol;
+  // TODO this is a workaround to make it work
+  // implementation is also a bunch of workarounds
+  uint16_t rb_offset;
   uint16_t dlDmrsSymbPos;  
   uint8_t dmrsConfigType;
   uint8_t prb_bundling_size_ind;
@@ -503,6 +514,7 @@ typedef struct {
   uint16_t scramb_id;               // ScramblingID of the CSI-RS [3GPP TS 38.214, sec 5.2.2.3.1], Value: 0->1023
   uint8_t power_control_offset;     // Ratio of PDSCH EPRE to NZP CSI-RSEPRE [3GPP TS 38.214, sec 5.2.2.3.1], Value: 0->23 representing -8 to 15 dB in 1dB steps; 255: L1 is configured with ProfileSSS
   uint8_t power_control_offset_ss;  // Ratio of NZP CSI-RS EPRE to SSB/PBCH block EPRE [3GPP TS 38.214, sec 5.2.2.3.1], Values: 0: -3dB; 1: 0dB; 2: 3dB; 3: 6dB; 255: L1 is configured with ProfileSSS
+  uint8_t measurement_bitmap;       // bit 0 RSRP, bit 1 RI, bit 2 LI, bit 3 PMI, bit 4 CQI, bit 5 i1
 } fapi_nr_dl_config_csirs_pdu_rel15_t;
 
 
@@ -559,7 +571,9 @@ typedef struct {
 typedef struct 
 {
   uint16_t dl_bandwidth;//Carrier bandwidth for DL in MHz [38.104, sec 5.3.2] Values: 5, 10, 15, 20, 25, 30, 40,50, 60, 70, 80,90,100,200,400
+  uint16_t sl_bandwidth; //Carrier bandwidth for SL in MHz [38.101, sec 5.3.5] Values: 10, 20, 30, and 40
   uint32_t dl_frequency; //Absolute frequency of DL point A in KHz [38.104, sec5.2 and 38.211 sec 4.4.4.2] Value: 450000 -> 52600000
+  uint32_t sl_frequency; //Absolute frequency of SL point A in KHz [38.331, sec6.3.5 and 38.211 sec 8.2.7]
   uint16_t dl_k0[5];//𝑘_{0}^{𝜇} for each of the numerologies [38.211, sec 5.3.1] Value: 0 ->23699
   uint16_t dl_grid_size[5];//Grid size 𝑁_{𝑔𝑟𝑖𝑑}^{𝑠𝑖𝑧𝑒,𝜇} for each of the numerologies [38.211, sec 4.4.2] Value: 0->275 0 = this numerology not used
   uint16_t num_tx_ant;//Number of Tx antennas
@@ -567,6 +581,7 @@ typedef struct
   uint32_t uplink_frequency;//Absolute frequency of UL point A in KHz [38.104, sec5.2 and 38.211 sec 4.4.4.2] Value: 450000 -> 52600000
   uint16_t ul_k0[5];//𝑘0 𝜇 for each of the numerologies [38.211, sec 5.3.1] Value: : 0 ->23699
   uint16_t ul_grid_size[5];//Grid size 𝑁𝑔𝑟𝑖𝑑 𝑠𝑖𝑧𝑒,𝜇 for each of the numerologies [38.211, sec 4.4.2]. Value: 0->275 0 = this numerology not used
+  uint16_t sl_grid_size[5];
   uint16_t num_rx_ant;//
   uint8_t  frequency_shift_7p5khz;//Indicates presence of 7.5KHz frequency shift. Value: 0 = false 1 = true
 

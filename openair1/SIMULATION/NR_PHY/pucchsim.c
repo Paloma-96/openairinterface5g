@@ -48,6 +48,7 @@
 #include "openair1/SIMULATION/NR_PHY/nr_unitary_defs.h"
 #include "executables/nr-uesoftmodem.h"
 #include "nfapi/oai_integration/vendor_ext.h"
+#include "executables/softmodem-common.h"
 
 THREAD_STRUCT thread_struct;
 PHY_VARS_gNB *gNB;
@@ -67,7 +68,10 @@ const short conjugate2[8]__attribute__((aligned(16))) = {1,-1,1,-1,1,-1,1,-1};
 PHY_VARS_NR_UE * PHY_vars_UE_g[1][1]={{NULL}};
 
 uint64_t get_softmodem_optmask(void) {return 0;}
-softmodem_params_t *get_softmodem_params(void) {return 0;}
+static softmodem_params_t softmodem_params;
+softmodem_params_t *get_softmodem_params(void) {
+  return &softmodem_params;
+}
 
 void init_downlink_harq_status(NR_DL_UE_HARQ_t *dl_harq) {}
 NR_IF_Module_t *NR_IF_Module_init(int Mod_id) { return (NULL); }
@@ -119,7 +123,7 @@ int main(int argc, char **argv)
   int16_t amp=0x7FFF;
   int nr_slot_tx=0;
   int nr_frame_tx=0;
-  uint64_t actual_payload=0,payload_received;
+  uint64_t actual_payload = 0, payload_received = 0;
   bool random_payload = true;
   int nr_bit=1; // maximum value possible is 2
   uint8_t m0=0;// higher layer paramater initial cyclic shift
@@ -403,7 +407,7 @@ int main(int argc, char **argv)
   }
   actual_payload &= nr_bit < 64 ? (1UL << nr_bit) - 1: 0xffffffffffffffff;
 
-  printf("Transmitted payload is %ld, do_DTX = %d\n",actual_payload,do_DTX);
+  printf("Transmitted payload is %lu, do_DTX = %d\n",actual_payload,do_DTX);
 
   RC.gNB = calloc(1, sizeof(PHY_VARS_gNB *));
   RC.gNB[0] = calloc(1,sizeof(PHY_VARS_gNB));

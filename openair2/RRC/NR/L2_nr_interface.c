@@ -41,6 +41,8 @@
 
 #include "intertask_interface.h"
 
+#include "uper_encoder.h"
+
 #include "NR_MIB.h"
 #include "NR_BCCH-BCH-Message.h"
 #include "rrc_gNB_UE_context.h"
@@ -55,12 +57,17 @@ void nr_rrc_mac_remove_ue(rnti_t rntiMaybeUEid)
   nr_rlc_remove_ue(rntiMaybeUEid);
 
   gNB_MAC_INST *nrmac = RC.nrmac[0];
+  NR_SCHED_LOCK(&nrmac->sched_lock);
   mac_remove_nr_ue(nrmac, rntiMaybeUEid);
+  NR_SCHED_UNLOCK(&nrmac->sched_lock);
 }
 
 void nr_rrc_mac_update_cellgroup(rnti_t rntiMaybeUEid, NR_CellGroupConfig_t *cgc)
 {
-  nr_mac_update_cellgroup(RC.nrmac[0], rntiMaybeUEid, cgc);
+  gNB_MAC_INST *nrmac = RC.nrmac[0];
+  NR_SCHED_LOCK(&nrmac->sched_lock);
+  nr_mac_update_cellgroup(nrmac, rntiMaybeUEid, cgc);
+  NR_SCHED_UNLOCK(&nrmac->sched_lock);
 }
 
 uint16_t mac_rrc_nr_data_req(const module_id_t Mod_idP,
@@ -112,33 +119,4 @@ int8_t nr_mac_rrc_bwp_switch_req(const module_id_t     module_idP,
   nr_rrc_reconfiguration_req(ue_context_p, &ctxt, dl_bwp_id, ul_bwp_id);
 
   return 0;
-}
-
-void nr_mac_gNB_rrc_ul_failure(const module_id_t Mod_instP,
-                               const int CC_idP,
-                               const frame_t frameP,
-                               const sub_frame_t subframeP,
-                               const rnti_t rntiP) {
-  rrc_gNB_ue_context_t *ue_context_p = rrc_gNB_get_ue_context_by_rnti(RC.nrrrc[Mod_instP], rntiP);
-
-  if (ue_context_p != NULL) {
-    LOG_D(RRC,"Frame %d, Subframe %d: UE %x UL failure, activating timer\n",frameP,subframeP,rntiP);
-    if(ue_context_p->ue_context.ul_failure_timer == 0)
-      ue_context_p->ue_context.ul_failure_timer=1;
-  } else {
-    LOG_D(RRC,"Frame %d, Subframe %d: UL failure: UE %x unknown \n",frameP,subframeP,rntiP);
-  }
-}
-
-void nr_mac_gNB_rrc_ul_failure_reset(const module_id_t Mod_instP,
-                                     const frame_t frameP,
-                                     const sub_frame_t subframeP,
-                                     const rnti_t rntiP) {
-  rrc_gNB_ue_context_t *ue_context_p = rrc_gNB_get_ue_context_by_rnti(RC.nrrrc[Mod_instP], rntiP);
-  if (ue_context_p != NULL) {
-    LOG_W(RRC,"Frame %d, Subframe %d: UE %x UL failure reset, deactivating timer\n",frameP,subframeP,rntiP);
-    ue_context_p->ue_context.ul_failure_timer=0;
-  } else {
-    LOG_W(RRC,"Frame %d, Subframe %d: UL failure reset: UE %x unknown \n",frameP,subframeP,rntiP);
-  }
 }

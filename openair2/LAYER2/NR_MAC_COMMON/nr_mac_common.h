@@ -166,9 +166,7 @@ uint8_t get_pdsch_mcs_table(long *mcs_Table, int dci_format, int rnti_type, int 
 
 int get_format0(uint8_t index, uint8_t unpaired,frequency_range_t);
 
-int64_t *get_prach_config_info(frequency_range_t freq_range,
-                               uint8_t index,
-                               uint8_t unpaired);
+const int64_t *get_prach_config_info(frequency_range_t freq_range, uint8_t index, uint8_t unpaired);
 
 uint16_t get_NCS(uint8_t index, uint16_t format, uint8_t restricted_set_config);
 int compute_pucch_crc_size(int O_uci);
@@ -272,17 +270,6 @@ bool set_ul_ptrs_values(NR_PTRS_UplinkConfig_t *ul_ptrs_config,
 @param    configuredGrant  indicates whether a configured grant was received or not
 @returns                   transformPrecoding value */
 long get_transformPrecoding(const NR_UE_UL_BWP_t *current_UL_BWP, nr_dci_format_t dci_format, uint8_t configuredGrant);
-
-void nr_mac_gNB_rrc_ul_failure(const module_id_t Mod_instP,
-                               const int CC_idP,
-                               const frame_t frameP,
-                               const sub_frame_t subframeP,
-                               const rnti_t rntiP);
-
-void nr_mac_gNB_rrc_ul_failure_reset(const module_id_t Mod_instP,
-                                     const frame_t frameP,
-                                     const sub_frame_t subframeP,
-                                     const rnti_t rntiP);
 
 uint8_t number_of_bits_set(uint8_t buf);
 

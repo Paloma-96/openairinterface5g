@@ -232,10 +232,8 @@ int nr_pbch_channel_level(struct complex16 dl_ch_estimates_ext[][PBCH_MAX_RE_PER
       }*/
     }
 
-    avg1 = (((int *)&avg128)[0] +
-            ((int *)&avg128)[1] +
-            ((int *)&avg128)[2] +
-            ((int *)&avg128)[3])/(nb_rb*12);
+    for (int i = 0; i < 4; i++)
+      avg1 += ((int *)&avg128)[i] / (nb_rb * 12);
 
     if (avg1>avg2)
       avg2 = avg1;
@@ -488,8 +486,8 @@ int nr_rx_pbch(PHY_VARS_NR_UE *ue,
   }
 
   // legacy code use int16, but it is complex16
-  UEscopeCopy(ue, pbchRxdataF_comp, pbch_unClipped, sizeof(struct complex16), frame_parms->nb_antennas_rx, pbch_e_rx_idx/2);
-  UEscopeCopy(ue, pbchLlr, pbch_e_rx, sizeof(int16_t), frame_parms->nb_antennas_rx, pbch_e_rx_idx);
+  UEscopeCopy(ue, pbchRxdataF_comp, pbch_unClipped, sizeof(struct complex16), frame_parms->nb_antennas_rx, pbch_e_rx_idx / 2, 0);
+  UEscopeCopy(ue, pbchLlr, pbch_e_rx, sizeof(int16_t), frame_parms->nb_antennas_rx, pbch_e_rx_idx, 0);
 #ifdef DEBUG_PBCH
   write_output("rxdataF_comp.m","rxFcomp",rxdataF_comp[0],240*3,1,1);
   short *p = (short *)rxdataF_comp[0]);

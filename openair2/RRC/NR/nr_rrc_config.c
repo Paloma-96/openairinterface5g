@@ -34,6 +34,9 @@
 #include "oai_asn1.h"
 #include "SIMULATION/TOOLS/sim.h" // for taus();
 
+#include "uper_decoder.h"
+#include "uper_encoder.h"
+
 const uint8_t slotsperframe[5] = {10, 20, 40, 80, 160};
 
 static NR_SearchSpace_t *rrc_searchspace_config(bool is_common, int searchspaceid, int coresetid)
@@ -137,56 +140,58 @@ static uint64_t get_ssb_bitmap(const NR_ServingCellConfigCommon_t *scc)
   return bitmap;
 }
 
-static void set_csirs_periodicity(NR_NZP_CSI_RS_Resource_t *nzpcsi0, int uid, int nb_slots_per_period)
+static void set_csirs_periodicity(NR_NZP_CSI_RS_Resource_t *nzpcsi0, int id, int nb_slots_per_period, int nb_dl_slots_period)
 {
   nzpcsi0->periodicityAndOffset = calloc(1,sizeof(*nzpcsi0->periodicityAndOffset));
-  int ideal_period = nb_slots_per_period * MAX_MOBILES_PER_GNB;
+  // TODO ideal period to be set according to estimation by the gNB on how fast the channel changes
+  const int ideal_period = 320;
+  const int offset = nb_slots_per_period * id;
 
-  if (ideal_period<5) {
+  if (ideal_period < 5) {
     nzpcsi0->periodicityAndOffset->present = NR_CSI_ResourcePeriodicityAndOffset_PR_slots4;
-    nzpcsi0->periodicityAndOffset->choice.slots4 = nb_slots_per_period*uid;
+    nzpcsi0->periodicityAndOffset->choice.slots4 = offset;
   }
-  else if (ideal_period<6) {
+  else if (ideal_period < 6) {
     nzpcsi0->periodicityAndOffset->present = NR_CSI_ResourcePeriodicityAndOffset_PR_slots5;
-    nzpcsi0->periodicityAndOffset->choice.slots5 = nb_slots_per_period*uid;
+    nzpcsi0->periodicityAndOffset->choice.slots5 = offset;
   }
-  else if (ideal_period<9) {
+  else if (ideal_period < 9) {
     nzpcsi0->periodicityAndOffset->present = NR_CSI_ResourcePeriodicityAndOffset_PR_slots8;
-    nzpcsi0->periodicityAndOffset->choice.slots8 = nb_slots_per_period*uid;
+    nzpcsi0->periodicityAndOffset->choice.slots8 = offset;
   }
-  else if (ideal_period<11) {
+  else if (ideal_period < 11) {
     nzpcsi0->periodicityAndOffset->present = NR_CSI_ResourcePeriodicityAndOffset_PR_slots10;
-    nzpcsi0->periodicityAndOffset->choice.slots10 = nb_slots_per_period*uid;
+    nzpcsi0->periodicityAndOffset->choice.slots10 = offset;
   }
-  else if (ideal_period<17) {
+  else if (ideal_period < 17) {
     nzpcsi0->periodicityAndOffset->present = NR_CSI_ResourcePeriodicityAndOffset_PR_slots16;
-    nzpcsi0->periodicityAndOffset->choice.slots16 = nb_slots_per_period*uid;
+    nzpcsi0->periodicityAndOffset->choice.slots16 = offset;
   }
-  else if (ideal_period<21) {
+  else if (ideal_period < 21) {
     nzpcsi0->periodicityAndOffset->present = NR_CSI_ResourcePeriodicityAndOffset_PR_slots20;
-    nzpcsi0->periodicityAndOffset->choice.slots20 = nb_slots_per_period*uid;
+    nzpcsi0->periodicityAndOffset->choice.slots20 = offset;
   }
-  else if (ideal_period<41) {
+  else if (ideal_period < 41) {
     nzpcsi0->periodicityAndOffset->present = NR_CSI_ResourcePeriodicityAndOffset_PR_slots40;
-    nzpcsi0->periodicityAndOffset->choice.slots40 = nb_slots_per_period*uid;
+    nzpcsi0->periodicityAndOffset->choice.slots40 = offset;
   }
-  else if (ideal_period<81) {
+  else if (ideal_period < 81) {
     nzpcsi0->periodicityAndOffset->present = NR_CSI_ResourcePeriodicityAndOffset_PR_slots80;
-    nzpcsi0->periodicityAndOffset->choice.slots80 = nb_slots_per_period*uid;
+    nzpcsi0->periodicityAndOffset->choice.slots80 = offset;
   }
-  else if (ideal_period<161) {
+  else if (ideal_period < 161) {
     nzpcsi0->periodicityAndOffset->present = NR_CSI_ResourcePeriodicityAndOffset_PR_slots160;
-    nzpcsi0->periodicityAndOffset->choice.slots160 = nb_slots_per_period*uid;
+    nzpcsi0->periodicityAndOffset->choice.slots160 = offset;
   }
   else {
     nzpcsi0->periodicityAndOffset->present = NR_CSI_ResourcePeriodicityAndOffset_PR_slots320;
-    nzpcsi0->periodicityAndOffset->choice.slots320 = (nb_slots_per_period*uid)%320 + (nb_slots_per_period*uid)/320;
+    AssertFatal(offset / 320 < nb_dl_slots_period, "Cannot allocate CSI-RS for BWP %d. Not enough resources for CSI-RS\n", id);
+    nzpcsi0->periodicityAndOffset->choice.slots320 = (offset % 320) + (offset / 320);
   }
 }
 
 static void config_csirs(const NR_ServingCellConfigCommon_t *servingcellconfigcommon,
                          NR_CSI_MeasConfig_t *csi_MeasConfig,
-                         int uid,
                          int num_dl_antenna_ports,
                          int curr_bwp,
                          int do_csirs,
@@ -210,10 +215,8 @@ static void config_csirs(const NR_ServingCellConfigCommon_t *servingcellconfigco
                                         &servingcellconfigcommon->tdd_UL_DL_ConfigurationCommon->pattern1 : NULL;
 
     const int n_slots_frame = slotsperframe[*servingcellconfigcommon->ssbSubcarrierSpacing];
-
-    int nb_slots_per_period = n_slots_frame;
-    if (tdd)
-      nb_slots_per_period = n_slots_frame/get_nb_periods_per_frame(tdd->dl_UL_TransmissionPeriodicity);
+    int nb_slots_per_period = tdd ? n_slots_frame/get_nb_periods_per_frame(tdd->dl_UL_TransmissionPeriodicity): n_slots_frame;
+    int nb_dl_slots_period = tdd ? tdd->nrofDownlinkSlots : n_slots_frame;
 
     if(!csi_MeasConfig->nzp_CSI_RS_ResourceToAddModList)
       csi_MeasConfig->nzp_CSI_RS_ResourceToAddModList = calloc(1,sizeof(*csi_MeasConfig->nzp_CSI_RS_ResourceToAddModList));
@@ -257,13 +260,13 @@ static void config_csirs(const NR_ServingCellConfigCommon_t *servingcellconfigco
     resourceMapping.density.present = NR_CSI_RS_ResourceMapping__density_PR_one;
     resourceMapping.density.choice.one = (NULL_t)0;
     resourceMapping.freqBand.startingRB = 0;
-    resourceMapping.freqBand.nrofRBs = ((curr_bwp>>2)+(curr_bwp%4>0))<<2;
+    resourceMapping.freqBand.nrofRBs = ((curr_bwp >> 2) + (curr_bwp % 4 > 0)) << 2;
     nzpcsi0->resourceMapping = resourceMapping;
     nzpcsi0->powerControlOffset = 0;
-    nzpcsi0->powerControlOffsetSS=calloc(1,sizeof(*nzpcsi0->powerControlOffsetSS));
+    nzpcsi0->powerControlOffsetSS = calloc(1,sizeof(*nzpcsi0->powerControlOffsetSS));
     *nzpcsi0->powerControlOffsetSS = NR_NZP_CSI_RS_Resource__powerControlOffsetSS_db0;
     nzpcsi0->scramblingID = *servingcellconfigcommon->physCellId;
-    set_csirs_periodicity(nzpcsi0, uid, nb_slots_per_period);
+    set_csirs_periodicity(nzpcsi0, id, nb_slots_per_period, nb_dl_slots_period);
     nzpcsi0->qcl_InfoPeriodicCSI_RS = calloc(1,sizeof(*nzpcsi0->qcl_InfoPeriodicCSI_RS));
     *nzpcsi0->qcl_InfoPeriodicCSI_RS = 0;
     asn1cSeqAdd(&csi_MeasConfig->nzp_CSI_RS_ResourceToAddModList->list,nzpcsi0);
@@ -412,66 +415,68 @@ static struct NR_SRS_Resource__resourceType__periodic *configure_periodic_srs(co
   const int n_slots_period = tdd ? n_slots_frame/get_nb_periods_per_frame(tdd->dl_UL_TransmissionPeriodicity) : n_slots_frame;
   const int first_full_ul_slot = n_slots_period - ul_slots_period;
   const int ideal_period = n_slots_period * MAX_MOBILES_PER_GNB;
+  const int offset = first_full_ul_slot + (uid % ul_slots_period) + (n_slots_period * (uid / ul_slots_period));
+  AssertFatal(offset < 2560, "Cannot allocate SRS configuration for uid %d, not enough resources\n", uid);
   struct NR_SRS_Resource__resourceType__periodic *periodic_srs = calloc(1,sizeof(*periodic_srs));
   if (ideal_period < 5) {
     periodic_srs->periodicityAndOffset_p.present = NR_SRS_PeriodicityAndOffset_PR_sl4;
-    periodic_srs->periodicityAndOffset_p.choice.sl4 = first_full_ul_slot + (uid % ul_slots_period) + (n_slots_period * (uid / ul_slots_period));
+    periodic_srs->periodicityAndOffset_p.choice.sl4 = offset;
   }
   else if (ideal_period < 6) {
     periodic_srs->periodicityAndOffset_p.present = NR_SRS_PeriodicityAndOffset_PR_sl5;
-    periodic_srs->periodicityAndOffset_p.choice.sl5 = first_full_ul_slot + (uid % ul_slots_period) + (n_slots_period * (uid / ul_slots_period));
+    periodic_srs->periodicityAndOffset_p.choice.sl5 = offset;
   }
   else if (ideal_period < 9) {
     periodic_srs->periodicityAndOffset_p.present = NR_SRS_PeriodicityAndOffset_PR_sl8;
-    periodic_srs->periodicityAndOffset_p.choice.sl8 = first_full_ul_slot + (uid % ul_slots_period) + (n_slots_period * (uid / ul_slots_period));
+    periodic_srs->periodicityAndOffset_p.choice.sl8 = offset;
   }
   else if (ideal_period < 11) {
     periodic_srs->periodicityAndOffset_p.present = NR_SRS_PeriodicityAndOffset_PR_sl10;
-    periodic_srs->periodicityAndOffset_p.choice.sl10 = first_full_ul_slot + (uid % ul_slots_period) + (n_slots_period * (uid / ul_slots_period));
+    periodic_srs->periodicityAndOffset_p.choice.sl10 = offset;
   }
   else if (ideal_period < 17) {
     periodic_srs->periodicityAndOffset_p.present = NR_SRS_PeriodicityAndOffset_PR_sl16;
-    periodic_srs->periodicityAndOffset_p.choice.sl16 = first_full_ul_slot + (uid % ul_slots_period) + (n_slots_period * (uid / ul_slots_period));
+    periodic_srs->periodicityAndOffset_p.choice.sl16 = offset;
   }
   else if (ideal_period < 21) {
     periodic_srs->periodicityAndOffset_p.present = NR_SRS_PeriodicityAndOffset_PR_sl20;
-    periodic_srs->periodicityAndOffset_p.choice.sl20 = first_full_ul_slot + (uid % ul_slots_period) + (n_slots_period * (uid / ul_slots_period));
+    periodic_srs->periodicityAndOffset_p.choice.sl20 = offset;
   }
   else if (ideal_period < 33) {
     periodic_srs->periodicityAndOffset_p.present = NR_SRS_PeriodicityAndOffset_PR_sl32;
-    periodic_srs->periodicityAndOffset_p.choice.sl32 = first_full_ul_slot + (uid % ul_slots_period) + (n_slots_period * (uid / ul_slots_period));
+    periodic_srs->periodicityAndOffset_p.choice.sl32 = offset;
   }
   else if (ideal_period < 41) {
     periodic_srs->periodicityAndOffset_p.present = NR_SRS_PeriodicityAndOffset_PR_sl40;
-    periodic_srs->periodicityAndOffset_p.choice.sl40 = first_full_ul_slot + (uid % ul_slots_period) + (n_slots_period * (uid / ul_slots_period));
+    periodic_srs->periodicityAndOffset_p.choice.sl40 = offset;
   }
   else if (ideal_period < 65) {
     periodic_srs->periodicityAndOffset_p.present = NR_SRS_PeriodicityAndOffset_PR_sl64;
-    periodic_srs->periodicityAndOffset_p.choice.sl64 = first_full_ul_slot + (uid % ul_slots_period) + (n_slots_period * (uid / ul_slots_period));
+    periodic_srs->periodicityAndOffset_p.choice.sl64 = offset;
   }
   else if (ideal_period < 81) {
     periodic_srs->periodicityAndOffset_p.present = NR_SRS_PeriodicityAndOffset_PR_sl80;
-    periodic_srs->periodicityAndOffset_p.choice.sl80 = first_full_ul_slot + (uid % ul_slots_period) + (n_slots_period * (uid / ul_slots_period));
+    periodic_srs->periodicityAndOffset_p.choice.sl80 = offset;
   }
   else if (ideal_period < 161) {
     periodic_srs->periodicityAndOffset_p.present = NR_SRS_PeriodicityAndOffset_PR_sl160;
-    periodic_srs->periodicityAndOffset_p.choice.sl160 = first_full_ul_slot + (uid % ul_slots_period) + (n_slots_period * (uid / ul_slots_period));
+    periodic_srs->periodicityAndOffset_p.choice.sl160 = offset;
   }
   else if (ideal_period < 321) {
     periodic_srs->periodicityAndOffset_p.present = NR_SRS_PeriodicityAndOffset_PR_sl320;
-    periodic_srs->periodicityAndOffset_p.choice.sl320 = first_full_ul_slot + (uid % ul_slots_period) + (n_slots_period * (uid / ul_slots_period));
+    periodic_srs->periodicityAndOffset_p.choice.sl320 = offset;
   }
   else if (ideal_period < 641) {
     periodic_srs->periodicityAndOffset_p.present = NR_SRS_PeriodicityAndOffset_PR_sl640;
-    periodic_srs->periodicityAndOffset_p.choice.sl640 = first_full_ul_slot + (uid % ul_slots_period) + (n_slots_period * (uid / ul_slots_period));
+    periodic_srs->periodicityAndOffset_p.choice.sl640 = offset;
   }
   else if (ideal_period < 1281) {
     periodic_srs->periodicityAndOffset_p.present = NR_SRS_PeriodicityAndOffset_PR_sl1280;
-    periodic_srs->periodicityAndOffset_p.choice.sl1280 = first_full_ul_slot + (uid % ul_slots_period) + (n_slots_period * (uid / ul_slots_period));
+    periodic_srs->periodicityAndOffset_p.choice.sl1280 = offset;
   }
   else {
     periodic_srs->periodicityAndOffset_p.present = NR_SRS_PeriodicityAndOffset_PR_sl2560;
-    periodic_srs->periodicityAndOffset_p.choice.sl2560 = first_full_ul_slot + (uid % ul_slots_period) + (n_slots_period * (uid / ul_slots_period));
+    periodic_srs->periodicityAndOffset_p.choice.sl2560 = offset;
   }
   return periodic_srs;
 }
@@ -782,26 +787,27 @@ static void config_pucch_resset0(NR_PUCCH_Config_t *pucch_Config, int uid, int c
 {
   NR_PUCCH_ResourceSet_t *pucchresset = calloc(1,sizeof(*pucchresset));
   pucchresset->pucch_ResourceSetId = 0;
-  NR_PUCCH_ResourceId_t *pucchid=calloc(1,sizeof(*pucchid));
-  *pucchid=0;
+  NR_PUCCH_ResourceId_t *pucchid = calloc(1,sizeof(*pucchid));
+  *pucchid = 0;
   asn1cSeqAdd(&pucchresset->resourceList.list,pucchid);
-  pucchresset->maxPayloadSize=NULL;
+  pucchresset->maxPayloadSize = NULL;
 
   if(uecap) {
     long *pucch_F0_2WithoutFH = uecap->phy_Parameters.phy_ParametersFRX_Diff->pucch_F0_2WithoutFH;
     AssertFatal(pucch_F0_2WithoutFH == NULL,"UE does not support PUCCH F0 without frequency hopping. Current configuration is without FH\n");
   }
 
-  NR_PUCCH_Resource_t *pucchres0=calloc(1,sizeof(*pucchres0));
-  pucchres0->pucch_ResourceId=*pucchid;
-  pucchres0->startingPRB= (8 + uid) % curr_bwp;
-  pucchres0->intraSlotFrequencyHopping=NULL;
-  pucchres0->secondHopPRB=NULL;
-  pucchres0->format.present= NR_PUCCH_Resource__format_PR_format0;
-  pucchres0->format.choice.format0=calloc(1,sizeof(*pucchres0->format.choice.format0));
-  pucchres0->format.choice.format0->initialCyclicShift=0;
-  pucchres0->format.choice.format0->nrofSymbols=1;
-  pucchres0->format.choice.format0->startingSymbolIndex=13;
+  NR_PUCCH_Resource_t *pucchres0 = calloc(1,sizeof(*pucchres0));
+  pucchres0->pucch_ResourceId = *pucchid;
+  pucchres0->startingPRB = 8 + uid;
+  AssertFatal(pucchres0->startingPRB < curr_bwp, "Not enough resources in current BWP (size %d) to allocate uid %d\n", curr_bwp, uid);
+  pucchres0->intraSlotFrequencyHopping = NULL;
+  pucchres0->secondHopPRB = NULL;
+  pucchres0->format.present = NR_PUCCH_Resource__format_PR_format0;
+  pucchres0->format.choice.format0 = calloc(1,sizeof(*pucchres0->format.choice.format0));
+  pucchres0->format.choice.format0->initialCyclicShift = 0;
+  pucchres0->format.choice.format0->nrofSymbols = 1;
+  pucchres0->format.choice.format0->startingSymbolIndex = 13;
   asn1cSeqAdd(&pucch_Config->resourceToAddModList->list,pucchres0);
 
   asn1cSeqAdd(&pucch_Config->resourceSetToAddModList->list,pucchresset);
@@ -814,44 +820,43 @@ static void config_pucch_resset1(NR_PUCCH_Config_t *pucch_Config, const NR_UE_NR
   NR_PUCCH_ResourceSet_t *pucchresset=calloc(1,sizeof(*pucchresset));
   pucchresset->pucch_ResourceSetId = 1;
   NR_PUCCH_ResourceId_t *pucchressetid=calloc(1,sizeof(*pucchressetid));
-  *pucchressetid=2;
+  *pucchressetid = 2;
   asn1cSeqAdd(&pucchresset->resourceList.list,pucchressetid);
-  pucchresset->maxPayloadSize=NULL;
+  pucchresset->maxPayloadSize = NULL;
 
   if(uecap) {
     long *pucch_F0_2WithoutFH = uecap->phy_Parameters.phy_ParametersFRX_Diff->pucch_F0_2WithoutFH;
     AssertFatal(pucch_F0_2WithoutFH == NULL,"UE does not support PUCCH F2 without frequency hopping. Current configuration is without FH\n");
   }
 
-  NR_PUCCH_Resource_t *pucchres2=calloc(1,sizeof(*pucchres2));
-  pucchres2->pucch_ResourceId=*pucchressetid;
-  pucchres2->startingPRB=0;
-  pucchres2->intraSlotFrequencyHopping=NULL;
-  pucchres2->secondHopPRB=NULL;
-  pucchres2->format.present= NR_PUCCH_Resource__format_PR_format2;
-  pucchres2->format.choice.format2=calloc(1,sizeof(*pucchres2->format.choice.format2));
-  pucchres2->format.choice.format2->nrofPRBs=8;
-  pucchres2->format.choice.format2->nrofSymbols=1;
-  pucchres2->format.choice.format2->startingSymbolIndex=13;
+  NR_PUCCH_Resource_t *pucchres2 = calloc(1,sizeof(*pucchres2));
+  pucchres2->pucch_ResourceId = *pucchressetid;
+  pucchres2->startingPRB = 0;
+  pucchres2->intraSlotFrequencyHopping = NULL;
+  pucchres2->secondHopPRB = NULL;
+  pucchres2->format.present = NR_PUCCH_Resource__format_PR_format2;
+  pucchres2->format.choice.format2 = calloc(1,sizeof(*pucchres2->format.choice.format2));
+  pucchres2->format.choice.format2->nrofPRBs = 8;
+  pucchres2->format.choice.format2->nrofSymbols = 1;
+  pucchres2->format.choice.format2->startingSymbolIndex = 13;
   asn1cSeqAdd(&pucch_Config->resourceToAddModList->list,pucchres2);
 
   asn1cSeqAdd(&pucch_Config->resourceSetToAddModList->list,pucchresset);
 
-  pucch_Config->format2=calloc(1,sizeof(*pucch_Config->format2));
-  pucch_Config->format2->present=NR_SetupRelease_PUCCH_FormatConfig_PR_setup;
+  pucch_Config->format2 = calloc(1,sizeof(*pucch_Config->format2));
+  pucch_Config->format2->present = NR_SetupRelease_PUCCH_FormatConfig_PR_setup;
   NR_PUCCH_FormatConfig_t *pucchfmt2 = calloc(1,sizeof(*pucchfmt2));
   pucch_Config->format2->choice.setup = pucchfmt2;
-  pucchfmt2->interslotFrequencyHopping=NULL;
-  pucchfmt2->additionalDMRS=NULL;
-  pucchfmt2->maxCodeRate=calloc(1,sizeof(*pucchfmt2->maxCodeRate));
-  *pucchfmt2->maxCodeRate=NR_PUCCH_MaxCodeRate_zeroDot35;
-  pucchfmt2->nrofSlots=NULL;
-  pucchfmt2->pi2BPSK=NULL;
+  pucchfmt2->interslotFrequencyHopping = NULL;
+  pucchfmt2->additionalDMRS = NULL;
+  pucchfmt2->maxCodeRate = calloc(1,sizeof(*pucchfmt2->maxCodeRate));
+  *pucchfmt2->maxCodeRate = NR_PUCCH_MaxCodeRate_zeroDot15;
+  pucchfmt2->nrofSlots = NULL;
+  pucchfmt2->pi2BPSK = NULL;
 
   // to check UE capabilities for that in principle
-  pucchfmt2->simultaneousHARQ_ACK_CSI=calloc(1,sizeof(*pucchfmt2->simultaneousHARQ_ACK_CSI));
-  *pucchfmt2->simultaneousHARQ_ACK_CSI=NR_PUCCH_FormatConfig__simultaneousHARQ_ACK_CSI_true;
-
+  pucchfmt2->simultaneousHARQ_ACK_CSI = calloc(1,sizeof(*pucchfmt2->simultaneousHARQ_ACK_CSI));
+  *pucchfmt2->simultaneousHARQ_ACK_CSI = NR_PUCCH_FormatConfig__simultaneousHARQ_ACK_CSI_true;
 }
 
 void set_pucch_power_config(NR_PUCCH_Config_t *pucch_Config, int do_csirs) {
@@ -1351,10 +1356,10 @@ static void set_csi_meas_periodicity(const NR_ServingCellConfigCommon_t *scc, NR
   const int n_ul_slots_period = tdd ? (tdd->nrofUplinkSlots + (tdd->nrofUplinkSymbols > 0)) : n_slots_frame;
   const int n_slots_period = tdd ? n_slots_frame / get_nb_periods_per_frame(tdd->dl_UL_TransmissionPeriodicity) : n_slots_frame;
   const int ideal_period = MAX_MOBILES_PER_GNB * 2 * n_slots_period / n_ul_slots_period; // 2 reports per UE
-  AssertFatal(ideal_period < 320, "Not enough UL slots to accomodate all possible UEs. Need to rework the implementation\n");
   const int first_ul_slot_period = tdd ? get_first_ul_slot(tdd->nrofDownlinkSlots, tdd->nrofDownlinkSymbols, tdd->nrofUplinkSymbols) : 0;
   const int idx = (uid << 1) + is_rsrp;
   const int offset = first_ul_slot_period + idx % n_ul_slots_period + (idx / n_ul_slots_period) * n_slots_period;
+  AssertFatal(offset < 320, "Not enough UL slots to accomodate all possible UEs. Need to rework the implementation\n");
 
   if (ideal_period < 5) {
     csirep->reportConfigType.choice.periodic->reportSlotConfig.present = NR_CSI_ReportPeriodicityAndOffset_PR_slots4;
@@ -1642,19 +1647,10 @@ NR_BCCH_BCH_Message_t *get_new_MIB_NR(const NR_ServingCellConfigCommon_t *scc)
   mib->message.choice.mib->spare.bits_unused = 7; // This makes a spare of 1 bits
 
   AssertFatal(scc->ssbSubcarrierSpacing != NULL, "scc->ssbSubcarrierSpacing is null\n");
-  int band = *scc->downlinkConfigCommon->frequencyInfoDL->frequencyBandList.list.array[0];
-  frequency_range_t frequency_range = band < 100 ? FR1 : FR2;
   int ssb_subcarrier_offset = 31; // default value for NSA
   if (get_softmodem_params()->sa) {
-    uint32_t absolute_diff = (*scc->downlinkConfigCommon->frequencyInfoDL->absoluteFrequencySSB
-                              - scc->downlinkConfigCommon->frequencyInfoDL->absoluteFrequencyPointA);
-    int scs_scaling = scc->downlinkConfigCommon->frequencyInfoDL->absoluteFrequencyPointA < 600000 ? 3 : 1;
-    ssb_subcarrier_offset = (absolute_diff / scs_scaling) % 24;
-    if (frequency_range == FR2) {
-      // this assumes 120kHz SCS for SSB and subCarrierSpacingCommon (only
-      // option supported by OAI for now)
-      ssb_subcarrier_offset >>= 1;
-    }
+    ssb_subcarrier_offset = get_ssb_subcarrier_offset(*scc->downlinkConfigCommon->frequencyInfoDL->absoluteFrequencySSB,
+                                                      scc->downlinkConfigCommon->frequencyInfoDL->absoluteFrequencyPointA);
   }
   mib->message.choice.mib->ssb_SubcarrierOffset = ssb_subcarrier_offset & 15;
 
@@ -1839,32 +1835,17 @@ NR_BCCH_DL_SCH_Message_t *get_SIB1_NR(const gNB_RrcConfigurationReq *configurati
         frequencyInfoDL->frequencyBandList.list.array[i];
   }
 
-  int scs_scaling0 = 1 << (configuration->scc->downlinkConfigCommon->initialDownlinkBWP->genericParameters.subcarrierSpacing);
-  int scs_scaling = scs_scaling0;
-  int scs_scaling2 = scs_scaling0;
-  if (frequencyInfoDL->absoluteFrequencyPointA < 600000) {
-    scs_scaling = scs_scaling0 * 3;
-  }
-  if (frequencyInfoDL->absoluteFrequencyPointA > 2016666) {
-    scs_scaling = scs_scaling0 >> 2;
-    scs_scaling2 = scs_scaling0 >> 2;
-  }
-  uint32_t absolute_diff = (*frequencyInfoDL->absoluteFrequencySSB - frequencyInfoDL->absoluteFrequencyPointA);
-
-  sib1->servingCellConfigCommon->downlinkConfigCommon.frequencyInfoDL.offsetToPointA =
-      scs_scaling2 * (absolute_diff / (12 * scs_scaling) - 10);
+  const NR_FreqBandIndicatorNR_t band = *configuration->scc->downlinkConfigCommon->frequencyInfoDL->frequencyBandList.list.array[0];
+  frequency_range_t frequency_range = band < 100 ? FR1 : FR2;
+  sib1->servingCellConfigCommon->downlinkConfigCommon.frequencyInfoDL.offsetToPointA = get_ssb_offset_to_pointA(*configuration->scc->downlinkConfigCommon->frequencyInfoDL->absoluteFrequencySSB,
+                               configuration->scc->downlinkConfigCommon->frequencyInfoDL->absoluteFrequencyPointA,
+                               configuration->scc->downlinkConfigCommon->initialDownlinkBWP->genericParameters.subcarrierSpacing,
+                               frequency_range);
 
   LOG_I(NR_RRC,
-        "SIB1 freq: absoluteFrequencySSB %ld, absoluteFrequencyPointA %ld\n",
-        *frequencyInfoDL->absoluteFrequencySSB,
-        frequencyInfoDL->absoluteFrequencyPointA);
-  LOG_I(NR_RRC,
-        "SIB1 freq: absolute_diff %d, %d*(absolute_diff/(12*%d) - 10) %d\n",
-        absolute_diff,
-        scs_scaling2,
-        scs_scaling,
+	"SIB1 freq: offsetToPointA %d\n",
         (int)sib1->servingCellConfigCommon->downlinkConfigCommon.frequencyInfoDL.offsetToPointA);
-
+  
   for (int i = 0; i < frequencyInfoDL->scs_SpecificCarrierList.list.count; i++) {
     asn1cSeqAdd(&ServCellCom->downlinkConfigCommon.frequencyInfoDL.scs_SpecificCarrierList.list,
                 frequencyInfoDL->scs_SpecificCarrierList.list.array[i]);
@@ -1911,6 +1892,23 @@ NR_BCCH_DL_SCH_Message_t *get_SIB1_NR(const gNB_RrcConfigurationReq *configurati
   }
 
   asn1cCallocOne(UL->frequencyInfoUL.p_Max, *frequencyInfoUL->p_Max);
+
+  frame_type_t frame_type =
+      get_frame_type((int)*configuration->scc->downlinkConfigCommon->frequencyInfoDL->frequencyBandList.list.array[0],
+                     *configuration->scc->ssbSubcarrierSpacing);
+
+  if (frame_type == FDD) {
+    UL->frequencyInfoUL.absoluteFrequencyPointA = malloc(sizeof(*UL->frequencyInfoUL.absoluteFrequencyPointA));
+    AssertFatal(UL->frequencyInfoUL.absoluteFrequencyPointA != NULL, "out of memory\n");
+    *UL->frequencyInfoUL.absoluteFrequencyPointA =
+        *configuration->scc->uplinkConfigCommon->frequencyInfoUL->absoluteFrequencyPointA;
+    UL->frequencyInfoUL.frequencyBandList = calloc(1, sizeof(*UL->frequencyInfoUL.frequencyBandList));
+    AssertFatal(UL->frequencyInfoUL.frequencyBandList != NULL, "out of memory\n");
+    for (int i = 0; i < frequencyInfoUL->frequencyBandList->list.count; i++) {
+      asn1cSequenceAdd(UL->frequencyInfoUL.frequencyBandList->list, struct NR_NR_MultiBandInfo, nrMultiBandInfo);
+      nrMultiBandInfo->freqBandIndicatorNR = frequencyInfoUL->frequencyBandList->list.array[i];
+    }
+  }
 
   UL->initialUplinkBWP.genericParameters = configuration->scc->uplinkConfigCommon->initialUplinkBWP->genericParameters;
   UL->initialUplinkBWP.rach_ConfigCommon = configuration->scc->uplinkConfigCommon->initialUplinkBWP->rach_ConfigCommon;
@@ -2039,10 +2037,18 @@ int encode_SIB1_NR(NR_BCCH_DL_SCH_Message_t *sib1, uint8_t *buffer, int max_buff
   return (enc_rval.encoded + 7) / 8;
 }
 
+static NR_PhysicalCellGroupConfig_t *configure_phy_cellgroup(void)
+{
+  NR_PhysicalCellGroupConfig_t *physicalCellGroupConfig = calloc(1, sizeof(*physicalCellGroupConfig));
+  AssertFatal(physicalCellGroupConfig != NULL, "Couldn't allocate physicalCellGroupConfig. Out of memory!\n");
+  physicalCellGroupConfig->pdsch_HARQ_ACK_Codebook = NR_PhysicalCellGroupConfig__pdsch_HARQ_ACK_Codebook_dynamic;
+  return physicalCellGroupConfig;
+}
+
 static NR_MAC_CellGroupConfig_t *configure_mac_cellgroup(void)
 {
   NR_MAC_CellGroupConfig_t * mac_CellGroupConfig = calloc(1, sizeof(*mac_CellGroupConfig));
-
+  AssertFatal(mac_CellGroupConfig != NULL, "Couldn't allocate mac-CellGroupConfig. Out of memory!\n");
   mac_CellGroupConfig->bsr_Config = calloc(1, sizeof(*mac_CellGroupConfig->bsr_Config));
   mac_CellGroupConfig->bsr_Config->periodicBSR_Timer = NR_BSR_Config__periodicBSR_Timer_sf10;
   mac_CellGroupConfig->bsr_Config->retxBSR_Timer = NR_BSR_Config__retxBSR_Timer_sf80;
@@ -2075,11 +2081,6 @@ static NR_SpCellConfig_t *get_initial_SpCellConfig(int uid,
                                                    const NR_ServingCellConfig_t *servingcellconfigdedicated,
                                                    const gNB_RrcConfigurationReq *configuration)
 {
-  // This assert will never happen in the current implementation because NUMBER_OF_UE_MAX = 4.
-  // However, if in the future NUMBER_OF_UE_MAX is increased, it will be necessary to improve the allocation of SRS resources,
-  // where the startPosition = 2 or 3 and sl160 = 17, 17, 27 ... 157 only give us 30 different allocations.
-  AssertFatal(uid >= 0 && uid < 30, "gNB cannot allocate the SRS resources\n");
-
   const int pdsch_AntennaPorts =
       configuration->pdsch_AntennaPorts.N1 * configuration->pdsch_AntennaPorts.N2 * configuration->pdsch_AntennaPorts.XP;
   int curr_bwp = NRRIV2BW(scc->downlinkConfigCommon->initialDownlinkBWP->genericParameters.locationAndBandwidth, MAX_BWP_SIZE);
@@ -2242,7 +2243,7 @@ static NR_SpCellConfig_t *get_initial_SpCellConfig(int uid,
       bwp_id = bwp->bwp_Id;
     }
 
-    config_csirs(scc, csi_MeasConfig, uid, pdsch_AntennaPorts, curr_bwp, configuration->do_CSIRS, bwp_loop);
+    config_csirs(scc, csi_MeasConfig, pdsch_AntennaPorts, curr_bwp, configuration->do_CSIRS, bwp_loop);
     config_csiim(configuration->do_CSIRS, pdsch_AntennaPorts, curr_bwp, csi_MeasConfig, bwp_loop);
 
     NR_CSI_ResourceConfig_t *csires1 = calloc(1, sizeof(*csires1));
@@ -2337,11 +2338,8 @@ NR_CellGroupConfig_t *get_initial_cellGroupConfig(int uid,
 
   /* mac CellGroup Config */
   cellGroupConfig->mac_CellGroupConfig = configure_mac_cellgroup();
-
-  NR_PhysicalCellGroupConfig_t *physicalCellGroupConfig = calloc(1, sizeof(*physicalCellGroupConfig));
-  physicalCellGroupConfig->p_NR_FR1 = NULL;
-  physicalCellGroupConfig->pdsch_HARQ_ACK_Codebook = NR_PhysicalCellGroupConfig__pdsch_HARQ_ACK_Codebook_dynamic;
-  cellGroupConfig->physicalCellGroupConfig = physicalCellGroupConfig;
+  
+  cellGroupConfig->physicalCellGroupConfig = configure_phy_cellgroup();
 
   cellGroupConfig->spCellConfig = get_initial_SpCellConfig(uid, scc, servingcellconfigdedicated, configuration);
 
@@ -2350,6 +2348,8 @@ NR_CellGroupConfig_t *get_initial_cellGroupConfig(int uid,
   return cellGroupConfig;
 }
 
+#include "common/ran_context.h"
+#include "nr_rrc_defs.h"
 void update_cellGroupConfig(NR_CellGroupConfig_t *cellGroupConfig,
                             const int uid,
                             NR_UE_NR_Capability_t *uecap,
@@ -2364,6 +2364,13 @@ void update_cellGroupConfig(NR_CellGroupConfig_t *cellGroupConfig,
   if (configuration == NULL)
     return;
   DevAssert(configuration->scc != NULL);
+
+  /* This is a hack and will be removed once the CellGroupConfig is fully
+   * handled at the DU */
+  if (NODE_IS_CU(RC.nrrrc[0]->node_type)) {
+    LOG_W(RRC, "update of CellGroupConfig not yet supported in F1\n");
+    return;
+  }
 
   NR_SpCellConfig_t *SpCellConfig = cellGroupConfig->spCellConfig;
   NR_ServingCellConfigCommon_t *scc = configuration->scc;
@@ -2558,19 +2565,7 @@ NR_CellGroupConfig_t *get_default_secondaryCellGroup(const NR_ServingCellConfigC
   asn1cSeqAdd(&secondaryCellGroup->rlc_BearerToAddModList->list, RLC_BearerConfig);
 
   secondaryCellGroup->mac_CellGroupConfig = configure_mac_cellgroup();
-
-  secondaryCellGroup->physicalCellGroupConfig = calloc(1, sizeof(*secondaryCellGroup->physicalCellGroupConfig));
-  secondaryCellGroup->physicalCellGroupConfig->harq_ACK_SpatialBundlingPUCCH = NULL;
-  secondaryCellGroup->physicalCellGroupConfig->harq_ACK_SpatialBundlingPUSCH = NULL;
-  secondaryCellGroup->physicalCellGroupConfig->p_NR_FR1 = NULL;
-  secondaryCellGroup->physicalCellGroupConfig->pdsch_HARQ_ACK_Codebook =
-      NR_PhysicalCellGroupConfig__pdsch_HARQ_ACK_Codebook_dynamic;
-  secondaryCellGroup->physicalCellGroupConfig->tpc_SRS_RNTI = NULL;
-  secondaryCellGroup->physicalCellGroupConfig->tpc_PUCCH_RNTI = NULL;
-  secondaryCellGroup->physicalCellGroupConfig->tpc_PUSCH_RNTI = NULL;
-  secondaryCellGroup->physicalCellGroupConfig->sp_CSI_RNTI = NULL;
-  secondaryCellGroup->physicalCellGroupConfig->cs_RNTI = NULL;
-  secondaryCellGroup->physicalCellGroupConfig->ext1 = NULL;
+  secondaryCellGroup->physicalCellGroupConfig = configure_phy_cellgroup();
   secondaryCellGroup->spCellConfig = calloc(1, sizeof(*secondaryCellGroup->spCellConfig));
   secondaryCellGroup->spCellConfig->servCellIndex = calloc(1, sizeof(*secondaryCellGroup->spCellConfig->servCellIndex));
   *secondaryCellGroup->spCellConfig->servCellIndex = servCellIndex;
@@ -2802,7 +2797,7 @@ NR_CellGroupConfig_t *get_default_secondaryCellGroup(const NR_ServingCellConfigC
         secondaryCellGroup->spCellConfig->spCellConfigDedicated->downlinkBWP_ToAddModList->list.array[bwp_loop];
     int curr_bwp = NRRIV2BW(bwp->bwp_Common->genericParameters.locationAndBandwidth, MAX_BWP_SIZE);
 
-    config_csirs(servingcellconfigcommon, csi_MeasConfig, uid, dl_antenna_ports, curr_bwp, do_csirs, bwp_loop);
+    config_csirs(servingcellconfigcommon, csi_MeasConfig, dl_antenna_ports, curr_bwp, do_csirs, bwp_loop);
     config_csiim(do_csirs, dl_antenna_ports, curr_bwp, csi_MeasConfig, bwp_loop);
 
     if (do_csirs) {

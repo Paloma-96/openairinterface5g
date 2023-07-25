@@ -40,7 +40,7 @@
 #include "common/utils/LOG/vcd_signal_dumper.h"
 #include "UTIL/OPT/opt.h"
 
-#include "RRC/NR/nr_rrc_extern.h"
+#include "openair2/X2AP/x2ap_eNB.h"
 
 #include "nr_pdcp/nr_pdcp_oai_api.h"
 
@@ -53,8 +53,7 @@
 #include <errno.h>
 #include <string.h>
 
-const uint8_t nr_rv_round_map[4] = { 0, 2, 3, 1 };
-uint16_t nr_pdcch_order_table[6] = { 31, 31, 511, 2047, 2047, 8191 };
+const uint8_t nr_rv_round_map[4] = {0, 2, 3, 1};
 
 void clear_nr_nfapi_information(gNB_MAC_INST *gNB,
                                 int CC_idP,
@@ -64,6 +63,7 @@ void clear_nr_nfapi_information(gNB_MAC_INST *gNB,
                                 nfapi_nr_tx_data_request_t *TX_req,
                                 nfapi_nr_ul_dci_request_t *UL_dci_req)
 {
+  /* called below and in simulators, so we assume a lock but don't require it */
 
   NR_ServingCellConfigCommon_t *scc = gNB->common_channels->ServingCellConfigCommon;
   const int num_slots = nr_slots_per_frame[*scc->ssbSubcarrierSpacing];
@@ -150,6 +150,8 @@ void gNB_dlsch_ulsch_scheduler(module_id_t module_idP, frame_t frame, sub_frame_
   NR_COMMON_channels_t *cc = gNB->common_channels;
   NR_ServingCellConfigCommon_t        *scc     = cc->ServingCellConfigCommon;
 
+  NR_SCHED_LOCK(&gNB->sched_lock);
+
   if (slot==0 && (*scc->downlinkConfigCommon->frequencyInfoDL->frequencyBandList.list.array[0]>=257)) {
     //FR2
     const NR_TDD_UL_DL_Pattern_t *tdd = &scc->tdd_UL_DL_ConfigurationCommon->pattern1;
@@ -172,7 +174,8 @@ void gNB_dlsch_ulsch_scheduler(module_id_t module_idP, frame_t frame, sub_frame_
     void nr_pdcp_tick(int frame, int subframe);
     nr_rlc_tick(frame, slot >> *scc->ssbSubcarrierSpacing);
     nr_pdcp_tick(frame, slot >> *scc->ssbSubcarrierSpacing);
-    nr_rrc_trigger(&ctxt, 0 /*CC_id*/, frame, slot >> *scc->ssbSubcarrierSpacing);
+    if (is_x2ap_enabled())
+      x2ap_trigger();
   }
 
   for (int CC_id = 0; CC_id < MAX_NUM_CCs; CC_id++) {
@@ -255,6 +258,6 @@ void gNB_dlsch_ulsch_scheduler(module_id_t module_idP, frame_t frame, sub_frame_
   copy_ul_tti_req(&sched_info->UL_tti_req, &gNB->UL_tti_req_ahead[0][current_index]);
 
   stop_meas(&gNB->eNB_scheduler);
-
+  NR_SCHED_UNLOCK(&gNB->sched_lock);
   VCD_SIGNAL_DUMPER_DUMP_FUNCTION_BY_NAME(VCD_SIGNAL_DUMPER_FUNCTIONS_gNB_DLSCH_ULSCH_SCHEDULER,VCD_FUNCTION_OUT);
 }

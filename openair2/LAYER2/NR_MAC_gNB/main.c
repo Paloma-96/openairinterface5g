@@ -60,7 +60,9 @@ void *nrmac_stats_thread(void *arg) {
 
   while (oai_exit == 0) {
     char *p = output;
+    NR_SCHED_LOCK(&gNB->sched_lock);
     p += dump_mac_stats(gNB, p, end - p, false);
+    NR_SCHED_UNLOCK(&gNB->sched_lock);
     p += snprintf(p, end - p, "\n");
     p += print_meas_log(&gNB->eNB_scheduler, "DL & UL scheduling timing", NULL, NULL, p, end - p);
     p += print_meas_log(&gNB->schedule_dlsch, "dlsch scheduler", NULL, NULL, p, end - p);
@@ -87,7 +89,11 @@ size_t dump_mac_stats(gNB_MAC_INST *gNB, char *output, size_t strlen, bool reset
   const char *begin = output;
   const char *end = output + strlen;
 
-  pthread_mutex_lock(&gNB->UE_info.mutex);
+  /* this function is called from gNB_dlsch_ulsch_scheduler(), so assumes the
+   * scheduler to be locked*/
+  NR_SCHED_ENSURE_LOCKED(&gNB->sched_lock);
+
+  NR_SCHED_LOCK(&gNB->UE_info.mutex);
   UE_iterator(gNB->UE_info.list, UE) {
     NR_UE_sched_ctrl_t *sched_ctrl = &UE->UE_sched_ctrl;
     NR_mac_stats_t *stats = &UE->mac_stats;
@@ -103,14 +109,15 @@ size_t dump_mac_stats(gNB_MAC_INST *gNB, char *output, size_t strlen, bool reset
                        avg_rsrp,
                        stats->num_rsrp_meas);
 
-    output += snprintf(output,
-                       end - output,
-                       "UE %04x: CQI %d, RI %d, PMI (%d,%d)\n",
-                       UE->rnti,
-                       sched_ctrl->CSI_report.cri_ri_li_pmi_cqi_report.wb_cqi_1tb,
-                       sched_ctrl->CSI_report.cri_ri_li_pmi_cqi_report.ri+1,
-                       sched_ctrl->CSI_report.cri_ri_li_pmi_cqi_report.pmi_x1,
-                       sched_ctrl->CSI_report.cri_ri_li_pmi_cqi_report.pmi_x2);
+    if(sched_ctrl->CSI_report.cri_ri_li_pmi_cqi_report.print_report)
+      output += snprintf(output,
+                         end - output,
+                         "UE %04x: CQI %d, RI %d, PMI (%d,%d)\n",
+                         UE->rnti,
+                         sched_ctrl->CSI_report.cri_ri_li_pmi_cqi_report.wb_cqi_1tb,
+                         sched_ctrl->CSI_report.cri_ri_li_pmi_cqi_report.ri+1,
+                         sched_ctrl->CSI_report.cri_ri_li_pmi_cqi_report.pmi_x1,
+                         sched_ctrl->CSI_report.cri_ri_li_pmi_cqi_report.pmi_x2);
 
     if (stats->srs_stats[0] != '\0') {
       output += snprintf(output, end - output, "UE %04x: %s\n", UE->rnti, stats->srs_stats);
@@ -175,7 +182,7 @@ size_t dump_mac_stats(gNB_MAC_INST *gNB, char *output, size_t strlen, bool reset
                            stats->ul.lc_bytes[lc_id]);
     }
   }
-  pthread_mutex_unlock(&gNB->UE_info.mutex);
+  NR_SCHED_UNLOCK(&gNB->UE_info.mutex);
   return output - begin;
 }
 
@@ -232,6 +239,8 @@ void mac_top_init_gNB(ngran_node_t node_type)
       RC.nrmac[i]->ul_handle = 0;
 
       RC.nrmac[i]->first_MIB = true;
+
+      pthread_mutex_init(&RC.nrmac[i]->sched_lock, NULL);
 
       pthread_mutex_init(&RC.nrmac[i]->UE_info.mutex, NULL);
       uid_linear_allocator_init(&RC.nrmac[i]->UE_info.uid_allocator);

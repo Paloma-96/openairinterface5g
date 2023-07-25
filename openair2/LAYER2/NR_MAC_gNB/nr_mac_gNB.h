@@ -41,6 +41,25 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <pthread.h>
+
+#define NR_SCHED_LOCK(lock)                                        \
+  do {                                                             \
+    int rc = pthread_mutex_lock(lock);                             \
+    AssertFatal(rc == 0, "error while locking scheduler mutex\n"); \
+  } while (0)
+
+#define NR_SCHED_UNLOCK(lock)                                      \
+  do {                                                             \
+    int rc = pthread_mutex_unlock(lock);                           \
+    AssertFatal(rc == 0, "error while locking scheduler mutex\n"); \
+  } while (0)
+
+#define NR_SCHED_ENSURE_LOCKED(lock)\
+  do {\
+    int rc = pthread_mutex_trylock(lock); \
+    AssertFatal(rc == EBUSY, "this function should be called with the scheduler mutex locked\n");\
+  } while (0)
 
 /* Commmon */
 #include "radio/COMMON/common_lib.h"
@@ -448,10 +467,6 @@ typedef struct NR_bler_stats {
 */
 #define MAX_NR_OF_REPORTED_RS 4
 
-typedef enum NR_CSI_Report_Config {
-  CSI_Report_PR_cri_ri_li_pmi_cqi_report,
-  CSI_Report_PR_ssb_cri_report
-} NR_CSI_Report_Config_PR;
 struct CRI_RI_LI_PMI_CQI {
   uint8_t cri;
   uint8_t ri;
@@ -462,6 +477,7 @@ struct CRI_RI_LI_PMI_CQI {
   uint8_t wb_cqi_2tb;
   uint8_t cqi_table;
   uint8_t csi_report_id;
+  bool print_report;
 };
 
 typedef struct CRI_SSB_RSRP {
@@ -572,7 +588,9 @@ typedef struct {
   uint8_t current_harq_pid;
   int pusch_consecutive_dtx_cnt;
   int pucch_consecutive_dtx_cnt;
-  int ul_failure;
+  bool ul_failure;
+  int ul_failure_timer;
+  int release_timer;
   struct CSI_Report CSI_report;
   bool SR;
   /// information about every HARQ process
@@ -640,7 +658,10 @@ typedef struct NR_bler_options {
 } NR_bler_options_t;
 
 typedef struct nr_mac_rrc_ul_if_s {
-  /* TODO add other message types as necessary */
+  ue_context_setup_response_func_t ue_context_setup_response;
+  ue_context_modification_response_func_t ue_context_modification_response;
+  ue_context_release_request_func_t ue_context_release_request;
+  ue_context_release_complete_func_t ue_context_release_complete;
   initial_ul_rrc_message_transfer_func_t initial_ul_rrc_message_transfer;
 } nr_mac_rrc_ul_if_t;
 
@@ -678,7 +699,8 @@ typedef struct {
   // last element always NULL
   pthread_mutex_t mutex;
   NR_UE_info_t *list[MAX_MOBILES_PER_GNB+1];
-  bool sched_csirs;
+  // bitmap of CSI-RS already scheduled in current slot
+  int sched_csirs;
   uid_allocator_t uid_allocator;
 } NR_UEs_t;
 
@@ -802,6 +824,8 @@ typedef struct gNB_MAC_INST_s {
 
   int16_t frame;
   int16_t slot;
+
+  pthread_mutex_t sched_lock;
 
 } gNB_MAC_INST;
 

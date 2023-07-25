@@ -40,8 +40,6 @@ void set_cset_offset(uint16_t);
 
 void mac_top_init_gNB(ngran_node_t node_type);
 
-void config_common(gNB_MAC_INST *nrmac, int pdsch_AntennaPorts, int pusch_AntennaPorts, NR_ServingCellConfigCommon_t *scc);
-
 int nr_mac_enable_ue_rrc_processing_timer(module_id_t Mod_idP,
                                           rnti_t rnti,
                                           NR_SubcarrierSpacing_t subcarrierSpacing,
@@ -56,9 +54,8 @@ void nr_mac_config_scc(gNB_MAC_INST *nrmac,
 void nr_mac_config_mib(gNB_MAC_INST *nrmac, NR_BCCH_BCH_Message_t *mib);
 void nr_mac_config_sib1(gNB_MAC_INST *nrmac, NR_BCCH_DL_SCH_Message_t *sib1);
 bool nr_mac_add_test_ue(gNB_MAC_INST *nrmac, uint32_t rnti, NR_CellGroupConfig_t *CellGroup);
-bool nr_mac_prepare_ra_nsa_ue(gNB_MAC_INST *nrmac, uint32_t rnti, NR_CellGroupConfig_t *CellGroup);
+bool nr_mac_prepare_ra_ue(gNB_MAC_INST *nrmac, uint32_t rnti, NR_CellGroupConfig_t *CellGroup);
 bool nr_mac_update_cellgroup(gNB_MAC_INST *nrmac, uint32_t rnti, NR_CellGroupConfig_t *CellGroup);
-bool nr_mac_update_RA(gNB_MAC_INST *nrmac, uint32_t rnti, NR_CellGroupConfig_t *CellGroup);
 
 void clear_nr_nfapi_information(gNB_MAC_INST *gNB,
                                 int CC_idP,
@@ -86,15 +83,6 @@ void nr_schedule_ue_spec(module_id_t module_id,
                          sub_frame_t slot,
                          nfapi_nr_dl_tti_request_t *DL_req,
                          nfapi_nr_tx_data_request_t *TX_req);
-
-uint32_t schedule_control_sib1(module_id_t module_id,
-                               int CC_id,
-                               NR_Type0_PDCCH_CSS_config_t *type0_PDCCH_CSS_config,
-                               int time_domain_allocation,
-                               NR_pdsch_dmrs_t *dmrs_parms,
-                               NR_tda_info_t *tda_info,
-                               uint8_t candidate_idx,
-                               uint16_t num_total_bytes);
 
 /* \brief default FR1 DL preprocessor init routine, returns preprocessor to call */
 nr_pp_impl_dl nr_init_fr1_dlsch_preprocessor(int CC_id);
@@ -138,41 +126,6 @@ void nr_initiate_ra_proc(module_id_t module_idP, int CC_id, frame_t frameP, sub_
 void nr_clear_ra_proc(module_id_t module_idP, int CC_id, frame_t frameP, NR_RA_t *ra);
 
 int nr_allocate_CCEs(int module_idP, int CC_idP, frame_t frameP, sub_frame_t slotP, int test_only);
-
-void nr_get_Msg3alloc(module_id_t module_id,
-                      int CC_id,
-                      NR_ServingCellConfigCommon_t *scc,
-                      sub_frame_t current_subframe,
-                      frame_t current_frame,
-                      NR_RA_t *ra,
-                      int16_t *tdd_beam_association);
-
-void nr_generate_Msg3_retransmission(module_id_t module_idP,
-                                     int CC_id,
-                                     frame_t frameP,
-                                     sub_frame_t slotP,
-                                     NR_RA_t *ra,
-                                     nfapi_nr_ul_dci_request_t *ul_dci_req);
-
-/* \brief Function in gNB to fill RAR pdu when requested by PHY.
-@param ra Instance of RA resources of gNB
-@param dlsch_buffer Pointer to RAR input buffer
-@param N_RB_UL Number of UL resource blocks
-*/
-void nr_fill_rar(uint8_t Mod_idP,
-                 NR_RA_t * ra,
-                 uint8_t * dlsch_buffer,
-                 nfapi_nr_pusch_pdu_t  *pusch_pdu);
-
-void fill_msg3_pusch_pdu(nfapi_nr_pusch_pdu_t *pusch_pdu,
-                         NR_ServingCellConfigCommon_t *scc,
-                         int round,
-                         int startSymbolAndLength,
-                         rnti_t rnti, int scs,
-                         int bwp_size, int bwp_start,
-                         int mappingtype, int fh,
-                         int msg3_first_rb, int msg3_nb_rb);
-
 
 void schedule_nr_prach(module_id_t module_idP, frame_t frameP, sub_frame_t slotP);
 
@@ -380,38 +333,9 @@ int nr_write_ce_dlsch_pdu(module_id_t module_idP,
                           unsigned char drx_cmd,
                           unsigned char *ue_cont_res_id);
 
-void nr_generate_Msg2(module_id_t module_idP,
-                      int CC_id,
-                      frame_t frameP,
-                      sub_frame_t slotP,
-                      NR_RA_t *ra,
-                      nfapi_nr_dl_tti_request_t *dl_req,
-                      nfapi_nr_tx_data_request_t *TX_req);
-
-void nr_generate_Msg4(module_id_t module_idP,
-                      int CC_id,
-                      frame_t frameP,
-                      sub_frame_t slotP,
-                      NR_RA_t *ra,
-                      nfapi_nr_dl_tti_request_t *DL_req,
-                      nfapi_nr_tx_data_request_t *TX_req);
-
-void nr_check_Msg4_Ack(module_id_t module_id, int CC_id, frame_t frame, sub_frame_t slot, NR_RA_t *ra);
-
-void nr_generate_Msg3_dcch_dtch_response(module_id_t module_idP,
-                                         int CC_id,
-                                         frame_t frameP,
-                                         sub_frame_t slotP,
-                                         NR_RA_t *ra,
-                                         nfapi_nr_dl_tti_request_t *DL_req,
-                                         nfapi_nr_tx_data_request_t *TX_req);
-
 int binomial(int n, int k);
 
 bool is_xlsch_in_slot(uint64_t bitmap, sub_frame_t slot);
-
-void fill_ssb_vrb_map (NR_COMMON_channels_t *cc, int rbStart, int ssb_subcarrier_offset, uint16_t symStart, int CC_id);
-
 
 /* \brief Function to indicate a received SDU on ULSCH.
 @param Mod_id Instance ID of gNB
@@ -450,13 +374,6 @@ void handle_nr_srs_measurements(const module_id_t module_id,
                                 const frame_t frame,
                                 const sub_frame_t slot,
                                 nfapi_nr_srs_indication_pdu_t *srs_ind);
-
-int16_t ssb_index_from_prach(module_id_t module_idP,
-                             frame_t frameP,
-                             sub_frame_t slotP,
-                             uint16_t preamble_index,
-                             uint8_t freq_index,
-                             uint8_t symbol);
 
 void find_SSB_and_RO_available(gNB_MAC_INST *nrmac);
 
@@ -516,11 +433,18 @@ void nr_sr_reporting(gNB_MAC_INST *nrmac, frame_t frameP, sub_frame_t slotP);
 
 size_t dump_mac_stats(gNB_MAC_INST *gNB, char *output, size_t strlen, bool reset_rsrp);
 
-void process_CellGroup(NR_CellGroupConfig_t *CellGroup, NR_UE_sched_ctrl_t *sched_ctrl);
+void process_CellGroup(NR_CellGroupConfig_t *CellGroup, NR_UE_info_t *UE);
 
 void prepare_initial_ul_rrc_message(gNB_MAC_INST *mac, NR_UE_info_t *UE);
 void send_initial_ul_rrc_message(gNB_MAC_INST *mac, int rnti, const uint8_t *sdu, sdu_size_t sdu_len, void *rawUE);
 
 void abort_nr_dl_harq(NR_UE_info_t* UE, int8_t harq_pid);
+
+void nr_mac_trigger_release_timer(NR_UE_sched_ctrl_t *sched_ctrl, NR_SubcarrierSpacing_t subcarrier_spacing);
+bool nr_mac_check_release(NR_UE_sched_ctrl_t *sched_ctrl, int rnti);
+
+void nr_mac_trigger_ul_failure(NR_UE_sched_ctrl_t *sched_ctrl, NR_SubcarrierSpacing_t subcarrier_spacing);
+void nr_mac_reset_ul_failure(NR_UE_sched_ctrl_t *sched_ctrl);
+void nr_mac_check_ul_failure(const gNB_MAC_INST *nrmac, int rnti, NR_UE_sched_ctrl_t *sched_ctrl);
 
 #endif /*__LAYER2_NR_MAC_PROTO_H__*/

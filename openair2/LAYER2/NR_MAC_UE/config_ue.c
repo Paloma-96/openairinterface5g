@@ -355,7 +355,7 @@ void config_common_ue(NR_UE_MAC_INST_t *mac,
 
   switch (scc->ssb_PositionsInBurst->present) {
   case 1 :
-    cfg->ssb_table.ssb_mask_list[0].ssb_mask = scc->ssb_PositionsInBurst->choice.shortBitmap.buf[0]<<24;
+    cfg->ssb_table.ssb_mask_list[0].ssb_mask = scc->ssb_PositionsInBurst->choice.shortBitmap.buf[0] << 24;
     cfg->ssb_table.ssb_mask_list[1].ssb_mask = 0;
     break;
   case 2 :
@@ -366,8 +366,8 @@ void config_common_ue(NR_UE_MAC_INST_t *mac,
     cfg->ssb_table.ssb_mask_list[0].ssb_mask = 0;
     cfg->ssb_table.ssb_mask_list[1].ssb_mask = 0;
     for (int i = 0; i < 4; i++) {
-      cfg->ssb_table.ssb_mask_list[0].ssb_mask += (scc->ssb_PositionsInBurst->choice.longBitmap.buf[3-i]<<i*8);
-      cfg->ssb_table.ssb_mask_list[1].ssb_mask += (scc->ssb_PositionsInBurst->choice.longBitmap.buf[7-i]<<i*8);
+      cfg->ssb_table.ssb_mask_list[0].ssb_mask += (uint32_t) scc->ssb_PositionsInBurst->choice.longBitmap.buf[3 - i] << i * 8;
+      cfg->ssb_table.ssb_mask_list[1].ssb_mask += (uint32_t) scc->ssb_PositionsInBurst->choice.longBitmap.buf[7 - i] << i * 8;
     }
     break;
   default:
@@ -434,103 +434,86 @@ void config_common_ue(NR_UE_MAC_INST_t *mac,
   cfg->prach_config.ssb_per_rach = rach_ConfigCommon->ssb_perRACH_OccasionAndCB_PreamblesPerSSB->present-1;
 }
 
-/** \brief This function is relavant for the UE procedures for control. It loads the search spaces, the BWPs and the CORESETs into the MAC instance and
-    \brief performs assert checks on the relevant RRC configuration.
-    @param NR_UE_MAC_INST_t mac: pointer to local MAC instance
-    @returns void
-    */
-void config_control_ue(NR_UE_MAC_INST_t *mac){
 
-  int bwp_id;
-  NR_ServingCellConfig_t *scd = mac->cg->spCellConfig->spCellConfigDedicated;
-  NR_BWP_Id_t dl_bwp_id = mac->current_DL_BWP.bwp_id;
+NR_SearchSpace_t *get_common_search_space(const struct NR_PDCCH_ConfigCommon__commonSearchSpaceList *commonSearchSpaceList,
+                                          const NR_UE_MAC_INST_t *mac,
+                                          const NR_SearchSpaceId_t ss_id)
+{
+  if (ss_id == 0)
+    return mac->search_space_zero;
 
-  // configure DLbwp
-  if (scd->downlinkBWP_ToAddModList) {
-    for (int i = 0; i < scd->downlinkBWP_ToAddModList->list.count; i++) {
-      bwp_id = scd->downlinkBWP_ToAddModList->list.array[i]->bwp_Id;
-      mac->DLbwp[bwp_id-1] = scd->downlinkBWP_ToAddModList->list.array[i];
+  NR_SearchSpace_t *css = NULL;
+  for (int i = 0; i < commonSearchSpaceList->list.count; i++) {
+    if (commonSearchSpaceList->list.array[i]->searchSpaceId == ss_id) {
+      css = commonSearchSpaceList->list.array[i];
+      break;
     }
   }
-
-  // configure ULbwp
-  if (scd->uplinkConfig->uplinkBWP_ToAddModList) {
-    for (int i = 0; i < scd->uplinkConfig->uplinkBWP_ToAddModList->list.count; i++) {
-      bwp_id = scd->uplinkConfig->uplinkBWP_ToAddModList->list.array[i]->bwp_Id;
-      mac->ULbwp[bwp_id-1] = scd->uplinkConfig->uplinkBWP_ToAddModList->list.array[i];
-    }
-  }
-
-  configure_ss_coreset(mac, scd, dl_bwp_id);
+  AssertFatal(css, "Couldn't find CSS with Id %ld\n", ss_id);
+  return css;
 }
 
-
 void configure_ss_coreset(NR_UE_MAC_INST_t *mac,
-                          NR_ServingCellConfig_t *scd,
-                          NR_BWP_Id_t dl_bwp_id) {
+                          const NR_PDCCH_ConfigCommon_t *pdcch_ConfigCommon,
+                          const NR_PDCCH_Config_t *pdcch_Config)
+{
 
-  NR_BWP_DownlinkCommon_t *bwp_Common = get_bwp_downlink_common(mac, dl_bwp_id);
-  AssertFatal(bwp_Common != NULL, "bwp_Common is null\n");
-
-  NR_SetupRelease_PDCCH_ConfigCommon_t *pdcch_ConfigCommon = bwp_Common->pdcch_ConfigCommon;
-  AssertFatal(pdcch_ConfigCommon != NULL, "pdcch_ConfigCommon is null\n");
-
-  // configuring eventual common coreset
-  NR_ControlResourceSet_t *coreset = pdcch_ConfigCommon->choice.setup->commonControlResourceSet;
-  if (coreset)
-    mac->coreset[dl_bwp_id][coreset->controlResourceSetId - 1] = coreset;
-
-  NR_BWP_DownlinkDedicated_t *dl_bwp_Dedicated = dl_bwp_id>0 ? scd->downlinkBWP_ToAddModList->list.array[dl_bwp_id - 1]->bwp_Dedicated:
-                                                               scd->initialDownlinkBWP;
-
-  AssertFatal(dl_bwp_Dedicated != NULL, "dl_bwp_Dedicated is null\n");
-
-  NR_SetupRelease_PDCCH_Config_t *pdcch_Config = dl_bwp_Dedicated->pdcch_Config;
-  AssertFatal(pdcch_Config != NULL, "pdcch_Config is null\n");
-
-  struct NR_PDCCH_Config__controlResourceSetToAddModList *controlResourceSetToAddModList = pdcch_Config->choice.setup->controlResourceSetToAddModList;
-  AssertFatal(controlResourceSetToAddModList != NULL, "controlResourceSetToAddModList is null\n");
-
-  // configuring dedicated coreset
-  // In case network reconfigures control resource set with the same ControlResourceSetId as used for commonControlResourceSet configured via PDCCH-ConfigCommon,
-  // the configuration from PDCCH-Config always takes precedence
-  for (int i=0; i<controlResourceSetToAddModList->list.count; i++) {
-    coreset = controlResourceSetToAddModList->list.array[i];
-    mac->coreset[dl_bwp_id][coreset->controlResourceSetId - 1] = coreset;
+  // configuration of search spaces
+  if (pdcch_ConfigCommon) {
+    mac->otherSI_SS = pdcch_ConfigCommon->searchSpaceOtherSystemInformation ?
+                      get_common_search_space(pdcch_ConfigCommon->commonSearchSpaceList, mac,
+                                              *pdcch_ConfigCommon->searchSpaceOtherSystemInformation) :
+                      NULL;
+    mac->ra_SS = pdcch_ConfigCommon->ra_SearchSpace ?
+                 get_common_search_space(pdcch_ConfigCommon->commonSearchSpaceList, mac,
+                                         *pdcch_ConfigCommon->ra_SearchSpace) :
+                 NULL;
+    mac->paging_SS = pdcch_ConfigCommon->pagingSearchSpace ?
+                     get_common_search_space(pdcch_ConfigCommon->commonSearchSpaceList, mac,
+                                             *pdcch_ConfigCommon->pagingSearchSpace) :
+                     NULL;
+  }
+  if(pdcch_Config &&
+     pdcch_Config->searchSpacesToAddModList) {
+    int ss_configured = 0;
+    struct NR_PDCCH_Config__searchSpacesToAddModList *searchSpacesToAddModList = pdcch_Config->searchSpacesToAddModList;
+    for (int i = 0; i < searchSpacesToAddModList->list.count; i++) {
+      AssertFatal(ss_configured < FAPI_NR_MAX_SS, "Attempting to configure %d SS but only %d per BWP are allowed",
+                  ss_configured + 1, FAPI_NR_MAX_SS);
+      mac->BWP_searchspaces[ss_configured] = searchSpacesToAddModList->list.array[i];
+      ss_configured++;
+    }
+    for (int i = ss_configured; i < FAPI_NR_MAX_SS; i++)
+      mac->BWP_searchspaces[i] = NULL;
   }
 
-  struct NR_PDCCH_Config__searchSpacesToAddModList *searchSpacesToAddModList = pdcch_Config->choice.setup->searchSpacesToAddModList;
-  AssertFatal(searchSpacesToAddModList != NULL, "searchSpacesToAddModList is null\n");
-  AssertFatal(searchSpacesToAddModList->list.count > 0, "list of UE specifically configured Search Spaces is empty\n");
-  AssertFatal(searchSpacesToAddModList->list.count < FAPI_NR_MAX_SS_PER_BWP, "too many searchpaces per coreset %d\n", searchSpacesToAddModList->list.count);
-
-  // check available Search Spaces in the searchSpacesToAddModList and pass to MAC
-  // note: the network configures at most 10 Search Spaces per BWP per cell (including UE-specific and common Search Spaces).
-  for (int ss_id = 0; ss_id < searchSpacesToAddModList->list.count; ss_id++) {
-    NR_SearchSpace_t *ss = searchSpacesToAddModList->list.array[ss_id];
-    AssertFatal(ss->controlResourceSetId != NULL, "ss->controlResourceSetId is null\n");
-    AssertFatal(ss->searchSpaceType != NULL, "ss->searchSpaceType is null\n");
-    AssertFatal(ss->monitoringSymbolsWithinSlot != NULL, "NR_SearchSpace->monitoringSymbolsWithinSlot is null\n");
-    AssertFatal(ss->monitoringSymbolsWithinSlot->buf != NULL, "NR_SearchSpace->monitoringSymbolsWithinSlot->buf is null\n");
-    AssertFatal(ss->searchSpaceId <= FAPI_NR_MAX_SS, "Invalid searchSpaceId\n");
-    mac->SSpace[dl_bwp_id][ss->searchSpaceId - 1] = ss;
+  // configuration of coresets
+  int cset_configured = 0;
+  int common_cset_id = -1;
+  if (pdcch_ConfigCommon &&
+      pdcch_ConfigCommon->commonControlResourceSet) {
+    mac->BWP_coresets[cset_configured] = pdcch_ConfigCommon->commonControlResourceSet;
+    common_cset_id = pdcch_ConfigCommon->commonControlResourceSet->controlResourceSetId;
+    cset_configured++;
   }
-
-  struct NR_PDCCH_ConfigCommon__commonSearchSpaceList *commonSearchSpaceList = pdcch_ConfigCommon->choice.setup->commonSearchSpaceList;
-  AssertFatal(commonSearchSpaceList != NULL, "commonSearchSpaceList is null\n");
-  AssertFatal(commonSearchSpaceList->list.count > 0, "PDCCH CSS list has 0 elements\n");
-
-  // Check available CSSs in the commonSearchSpaceList (list of additional common search spaces)
-  // note: commonSearchSpaceList SIZE(1..4)
-  for (int css_id = 0; css_id < commonSearchSpaceList->list.count; css_id++) {
-    NR_SearchSpace_t *css = commonSearchSpaceList->list.array[css_id];
-    AssertFatal(css->controlResourceSetId != NULL, "ss->controlResourceSetId is null\n");
-    AssertFatal(css->searchSpaceType != NULL, "css->searchSpaceType is null\n");
-    AssertFatal(css->monitoringSymbolsWithinSlot != NULL, "css->monitoringSymbolsWithinSlot is null\n");
-    AssertFatal(css->monitoringSymbolsWithinSlot->buf != NULL, "css->monitoringSymbolsWithinSlot->buf is null\n");
-    AssertFatal(css->searchSpaceId <= FAPI_NR_MAX_SS, "Invalid searchSpaceId\n");
-    mac->SSpace[dl_bwp_id][css->searchSpaceId - 1] = css;
+  if(pdcch_Config &&
+     pdcch_Config->controlResourceSetToAddModList) {
+    struct NR_PDCCH_Config__controlResourceSetToAddModList *controlResourceSetToAddModList = pdcch_Config->controlResourceSetToAddModList;
+    for (int i = 0; i < controlResourceSetToAddModList->list.count; i++) {
+      AssertFatal(cset_configured < FAPI_NR_MAX_CORESET_PER_BWP, "Attempting to configure %d CORESET but only %d per BWP are allowed",
+                  cset_configured + 1, FAPI_NR_MAX_CORESET_PER_BWP);
+      // In case network reconfigures control resource set with the same ControlResourceSetId as used for commonControlResourceSet
+      // configured via PDCCH-ConfigCommon, the configuration from PDCCH-Config always takes precedence
+      if (controlResourceSetToAddModList->list.array[i]->controlResourceSetId == common_cset_id)
+        mac->BWP_coresets[0] = controlResourceSetToAddModList->list.array[i];
+      else {
+        mac->BWP_coresets[cset_configured] = controlResourceSetToAddModList->list.array[i];
+        cset_configured++;
+      }
+    }
   }
+  for (int i = cset_configured; i < FAPI_NR_MAX_CORESET_PER_BWP; i++)
+    mac->BWP_coresets[i] = NULL;
 }
 
 // todo handle mac_LogicalChannelConfig
@@ -581,6 +564,8 @@ void configure_current_BWP(NR_UE_MAC_INST_t *mac,
       UL_BWP->pucch_ConfigCommon = bwp_ulcommon->pucch_ConfigCommon->choice.setup;
     if (bwp_ulcommon->rach_ConfigCommon)
       UL_BWP->rach_ConfigCommon = bwp_ulcommon->rach_ConfigCommon->choice.setup;
+    if (bwp_dlcommon->pdcch_ConfigCommon)
+      configure_ss_coreset(mac, bwp_dlcommon->pdcch_ConfigCommon->choice.setup, NULL);
   }
 
   if(cell_group_config) {
@@ -626,11 +611,19 @@ void configure_current_BWP(NR_UE_MAC_INST_t *mac,
         dl_genericParameters = bwp_downlink->bwp_Common->genericParameters;
         DL_BWP->pdsch_Config = bwp_downlink->bwp_Dedicated->pdsch_Config->choice.setup;
         DL_BWP->tdaList_Common = bwp_downlink->bwp_Common->pdsch_ConfigCommon->choice.setup->pdsch_TimeDomainAllocationList;
+        configure_ss_coreset(mac,
+                             bwp_downlink->bwp_Common->pdcch_ConfigCommon ? bwp_downlink->bwp_Common->pdcch_ConfigCommon->choice.setup : NULL,
+                             bwp_downlink->bwp_Dedicated->pdcch_Config ? bwp_downlink->bwp_Dedicated->pdcch_Config->choice.setup : NULL);
+
       }
       else {
         dl_genericParameters = bwp_dlcommon->genericParameters;
         DL_BWP->pdsch_Config = spCellConfigDedicated->initialDownlinkBWP->pdsch_Config->choice.setup;
         DL_BWP->tdaList_Common = bwp_dlcommon->pdsch_ConfigCommon->choice.setup->pdsch_TimeDomainAllocationList;
+        configure_ss_coreset(mac,
+                             bwp_dlcommon->pdcch_ConfigCommon ? bwp_dlcommon->pdcch_ConfigCommon->choice.setup : NULL,
+                             spCellConfigDedicated->initialDownlinkBWP->pdcch_Config ? spCellConfigDedicated->initialDownlinkBWP->pdcch_Config->choice.setup : NULL);
+
       }
 
       UL_BWP->msg3_DeltaPreamble = bwp_ulcommon->pusch_ConfigCommon->choice.setup->msg3_DeltaPreamble;
@@ -665,6 +658,8 @@ void configure_current_BWP(NR_UE_MAC_INST_t *mac,
         UL_BWP->configuredGrantConfig =
             spCellConfigDedicated->uplinkConfig->initialUplinkBWP->configuredGrantConfig ? spCellConfigDedicated->uplinkConfig->initialUplinkBWP->configuredGrantConfig->choice.setup : NULL;
         ul_genericParameters = bwp_ulcommon->genericParameters;
+        if (bwp_ulcommon->pucch_ConfigCommon)
+          UL_BWP->pucch_ConfigCommon = bwp_ulcommon->pucch_ConfigCommon->choice.setup;
         if (bwp_ulcommon->rach_ConfigCommon)
           UL_BWP->rach_ConfigCommon = bwp_ulcommon->rach_ConfigCommon->choice.setup;
       }
@@ -693,145 +688,138 @@ void configure_current_BWP(NR_UE_MAC_INST_t *mac,
 
 }
 
+void ue_init_config_request(NR_UE_MAC_INST_t *mac, int scs)
+{
+  int slots_per_frame = nr_slots_per_frame[scs];
+  LOG_I(NR_MAC, "Initializing dl and ul config_request. num_slots = %d\n", slots_per_frame);
+  mac->dl_config_request = calloc(slots_per_frame, sizeof(*mac->dl_config_request));
+  mac->ul_config_request = calloc(slots_per_frame, sizeof(*mac->ul_config_request));
+  for (int i = 0; i < slots_per_frame; i++)
+    pthread_mutex_init(&(mac->ul_config_request[i].mutex_ul_config), NULL);
+}
 
-int nr_rrc_mac_config_req_ue(module_id_t module_id,
-                             int cc_idP,
-                             uint8_t gNB_index,
-                             NR_MIB_t *mibP,
-                             NR_ServingCellConfigCommonSIB_t *sccP,
-                             NR_CellGroupConfig_t *cell_group_config,
-                             NR_CellGroupConfig_t *scell_group_config)
+void nr_rrc_mac_config_req_mib(module_id_t module_id,
+                               int cc_idP,
+                               NR_MIB_t *mib,
+                               int sched_sib)
+{
+  NR_UE_MAC_INST_t *mac = get_mac_inst(module_id);
+  AssertFatal(mib, "MIB should not be NULL\n");
+  // initialize dl and ul config_request upon first reception of MIB
+  mac->mib = mib;    //  update by every reception
+  mac->phy_config.Mod_id = module_id;
+  mac->phy_config.CC_id = cc_idP;
+  if (sched_sib == 1)
+    mac->get_sib1 = true;
+  else if (sched_sib == 2)
+    mac->get_otherSI = true;
+}
+
+void nr_rrc_mac_config_req_sib1(module_id_t module_id,
+                                int cc_idP,
+                                struct NR_SI_SchedulingInfo *si_SchedulingInfo,
+                                NR_ServingCellConfigCommonSIB_t *scc)
+{
+  NR_UE_MAC_INST_t *mac = get_mac_inst(module_id);
+  AssertFatal(scc, "SIB1 SCC should not be NULL\n");
+  mac->scc_SIB = scc;
+  mac->si_SchedulingInfo = si_SchedulingInfo;
+  mac->nr_band = *scc->downlinkConfigCommon.frequencyInfoDL.frequencyBandList.list.array[0]->freqBandIndicatorNR;
+  config_common_ue_sa(mac, module_id, cc_idP);
+  configure_current_BWP(mac, scc, NULL);
+
+  // Setup the SSB to Rach Occasionsif (cell_group_config->spCellConfig) { mapping according to the config
+  build_ssb_to_ro_map(mac);
+  if (!get_softmodem_params()->emulate_l1)
+    mac->if_module->phy_config_request(&mac->phy_config);
+  mac->phy_config_request_sent = true;
+}
+
+void nr_rrc_mac_config_req_mcg(module_id_t module_id,
+                               int cc_idP,
+                               NR_CellGroupConfig_t *cell_group_config)
+{
+  LOG_I(MAC,"Applying CellGroupConfig from gNodeB\n");
+  AssertFatal(cell_group_config, "CellGroupConfig should not be NULL\n");
+  NR_UE_MAC_INST_t *mac = get_mac_inst(module_id);
+  mac->cg = cell_group_config;
+  if (cell_group_config->spCellConfig)
+    mac->servCellIndex = cell_group_config->spCellConfig->servCellIndex ? *cell_group_config->spCellConfig->servCellIndex : 0;
+  else
+    mac->servCellIndex = 0;
+
+  mac->scheduling_info.periodicBSR_SF = MAC_UE_BSR_TIMER_NOT_RUNNING;
+  mac->scheduling_info.retxBSR_SF = MAC_UE_BSR_TIMER_NOT_RUNNING;
+  mac->BSR_reporting_active = NR_BSR_TRIGGER_NONE;
+  LOG_D(MAC, "[UE %d]: periodic BSR %d (SF), retx BSR %d (SF)\n",
+        module_id,
+        mac->scheduling_info.periodicBSR_SF,
+        mac->scheduling_info.retxBSR_SF);
+
+  RA_config_t *ra = &mac->ra;
+  if (cell_group_config->spCellConfig && cell_group_config->spCellConfig->reconfigurationWithSync) {
+    LOG_A(NR_MAC, "Received the reconfigurationWithSync in %s\n", __FUNCTION__);
+    if (cell_group_config->spCellConfig->reconfigurationWithSync->rach_ConfigDedicated) {
+      ra->rach_ConfigDedicated = cell_group_config->spCellConfig->reconfigurationWithSync->rach_ConfigDedicated->choice.uplink;
+    }
+    mac->scc = cell_group_config->spCellConfig->reconfigurationWithSync->spCellConfigCommon;
+    mac->nr_band = *mac->scc->downlinkConfigCommon->frequencyInfoDL->frequencyBandList.list.array[0];
+    if (mac->scc_SIB) {
+      ASN_STRUCT_FREE(asn_DEF_NR_ServingCellConfigCommonSIB, mac->scc_SIB);
+      mac->scc_SIB = NULL;
+    }
+    mac->state = UE_NOT_SYNC;
+    mac->ra.ra_state = RA_UE_IDLE;
+    mac->physCellId = *mac->scc->physCellId;
+    if (!get_softmodem_params()->emulate_l1) {
+      mac->synch_request.Mod_id = module_id;
+      mac->synch_request.CC_id = cc_idP;
+      mac->synch_request.synch_req.target_Nid_cell = mac->physCellId;
+      mac->if_module->synch_request(&mac->synch_request);
+    }
+    mac->crnti = cell_group_config->spCellConfig->reconfigurationWithSync->newUE_Identity;
+    LOG_I(NR_MAC, "Configuring CRNTI %x\n", mac->crnti);
+
+    configure_current_BWP(mac, NULL, cell_group_config);
+    config_common_ue(mac, module_id, cc_idP);
+    nr_ue_mac_default_configs(mac);
+
+    if (!get_softmodem_params()->emulate_l1) {
+      mac->if_module->phy_config_request(&mac->phy_config);
+      mac->phy_config_request_sent = true;
+    }
+
+    // Setup the SSB to Rach Occasions mapping according to the config
+    build_ssb_to_ro_map(mac);
+  } else {
+    configure_current_BWP(mac, NULL, cell_group_config);
+  }
+}
+
+void nr_rrc_mac_config_req_scg(module_id_t module_id,
+                               int cc_idP,
+                               NR_CellGroupConfig_t *scell_group_config)
 {
 
   NR_UE_MAC_INST_t *mac = get_mac_inst(module_id);
   RA_config_t *ra = &mac->ra;
-  fapi_nr_config_request_t *cfg = &mac->phy_config.config_req;
 
-  if (mac->dl_config_request == NULL) // for SIB1 reception
-    mac->dl_config_request = calloc(NR_MAX_SLOTS_PER_FRAME, sizeof(*mac->dl_config_request));
+  AssertFatal(scell_group_config, "scell_group_config cannot be NULL\n");
 
-  //  TODO do something FAPI-like P5 L1/L2 config interface in config_si, config_mib, etc.
-
-  if(mibP != NULL){
-    mac->mib = mibP;    //  update by every reception
-    mac->phy_config.Mod_id = module_id;
-    mac->phy_config.CC_id = cc_idP;
+  mac->cg = scell_group_config;
+  mac->servCellIndex = *scell_group_config->spCellConfig->servCellIndex;
+  if (scell_group_config->spCellConfig->reconfigurationWithSync) {
+    if (scell_group_config->spCellConfig->reconfigurationWithSync->rach_ConfigDedicated) {
+      ra->rach_ConfigDedicated = scell_group_config->spCellConfig->reconfigurationWithSync->rach_ConfigDedicated->choice.uplink;
+    }
+    mac->scc = scell_group_config->spCellConfig->reconfigurationWithSync->spCellConfigCommon;
+    mac->nr_band = *mac->scc->downlinkConfigCommon->frequencyInfoDL->frequencyBandList.list.array[0];
+    mac->physCellId = *mac->scc->physCellId;
+    config_common_ue(mac,module_id,cc_idP);
+    mac->crnti = scell_group_config->spCellConfig->reconfigurationWithSync->newUE_Identity;
+    LOG_I(MAC,"Configuring CRNTI %x\n",mac->crnti);
   }
-  AssertFatal(scell_group_config == NULL || cell_group_config == NULL,
-              "both scell_group_config and cell_group_config cannot be non-NULL\n");
-
-  if (sccP != NULL) {
-
-    mac->scc_SIB = sccP;
-    mac->nr_band = *sccP->downlinkConfigCommon.frequencyInfoDL.frequencyBandList.list.array[0]->freqBandIndicatorNR;
-    config_common_ue_sa(mac, module_id, cc_idP);
-    configure_current_BWP(mac, sccP, NULL);
-
-    int num_slots_ul = nr_slots_per_frame[mac->mib->subCarrierSpacingCommon];
-    if(cfg->cell_config.frame_duplex_type == TDD){
-      num_slots_ul = mac->scc_SIB->tdd_UL_DL_ConfigurationCommon->pattern1.nrofUplinkSlots;
-      if (mac->scc_SIB->tdd_UL_DL_ConfigurationCommon->pattern1.nrofUplinkSymbols > 0) {
-        num_slots_ul++;
-      }
-    }
-    LOG_I(NR_MAC, "Initializing ul_config_request. num_slots_ul = %d\n", num_slots_ul);
-    mac->ul_config_request = calloc(num_slots_ul, sizeof(*mac->ul_config_request));
-    for (int i=0; i<num_slots_ul; i++)
-      pthread_mutex_init(&(mac->ul_config_request[i].mutex_ul_config), NULL);
-
-    int num_slots_dl = nr_slots_per_frame[mac->mib->subCarrierSpacingCommon];
-    if (cfg->cell_config.frame_duplex_type == TDD) {
-      num_slots_dl = mac->scc_SIB->tdd_UL_DL_ConfigurationCommon->pattern1.nrofDownlinkSlots;
-      if (mac->scc_SIB->tdd_UL_DL_ConfigurationCommon->pattern1.nrofDownlinkSymbols > 0) {
-        num_slots_dl++;
-      }
-    }
-    LOG_I(NR_MAC, "Initializing dl_config_request. num_slots_dl = %d\n", num_slots_dl);
-    mac->dl_config_request = realloc(mac->dl_config_request, num_slots_dl*sizeof(*mac->dl_config_request));
-    memset(mac->dl_config_request, 0, num_slots_dl*sizeof(fapi_nr_dl_config_request_t));
-
-    // Setup the SSB to Rach Occasionsif (cell_group_config->spCellConfig) { mapping according to the config
-    build_ssb_to_ro_map(mac);//->scc, mac->phy_config.config_req.cell_config.frame_duplex_type);
-    if (!get_softmodem_params()->emulate_l1)
-      mac->if_module->phy_config_request(&mac->phy_config);
-    mac->phy_config_request_sent = true;
-  }
-  if(scell_group_config != NULL ){
-    mac->cg = scell_group_config;
-    mac->servCellIndex = *scell_group_config->spCellConfig->servCellIndex;
-    if (scell_group_config->spCellConfig->reconfigurationWithSync) {
-      if (scell_group_config->spCellConfig->reconfigurationWithSync->rach_ConfigDedicated) {
-        ra->rach_ConfigDedicated = scell_group_config->spCellConfig->reconfigurationWithSync->rach_ConfigDedicated->choice.uplink;
-      }
-      mac->scc = scell_group_config->spCellConfig->reconfigurationWithSync->spCellConfigCommon;
-      mac->nr_band = *mac->scc->downlinkConfigCommon->frequencyInfoDL->frequencyBandList.list.array[0];
-      mac->physCellId = *mac->scc->physCellId;
-      config_common_ue(mac,module_id,cc_idP);
-      mac->crnti = scell_group_config->spCellConfig->reconfigurationWithSync->newUE_Identity;
-      LOG_I(MAC,"Configuring CRNTI %x\n",mac->crnti);
-    }
-    configure_current_BWP(mac, NULL, scell_group_config);
-    config_control_ue(mac);
-    // Setup the SSB to Rach Occasions mapping according to the config
-    build_ssb_to_ro_map(mac);
-
-  } else if (cell_group_config != NULL) {
-    LOG_I(MAC,"Applying CellGroupConfig from gNodeB\n");
-    mac->cg = cell_group_config;
-    if (cell_group_config->spCellConfig)
-      mac->servCellIndex = cell_group_config->spCellConfig->servCellIndex ? *cell_group_config->spCellConfig->servCellIndex : 0;
-    else
-      mac->servCellIndex = 0;
-
-    mac->scheduling_info.periodicBSR_SF = MAC_UE_BSR_TIMER_NOT_RUNNING;
-    mac->scheduling_info.retxBSR_SF = MAC_UE_BSR_TIMER_NOT_RUNNING;
-    mac->BSR_reporting_active = NR_BSR_TRIGGER_NONE;
-    LOG_D(MAC, "[UE %d]: periodic BSR %d (SF), retx BSR %d (SF)\n",
-          module_id,
-          mac->scheduling_info.periodicBSR_SF,
-          mac->scheduling_info.retxBSR_SF);
-
-    configure_current_BWP(mac, NULL, cell_group_config);
-    config_control_ue(mac);
-
-    if (cell_group_config->spCellConfig && cell_group_config->spCellConfig->reconfigurationWithSync) {
-      LOG_A(NR_MAC, "Received the reconfigurationWithSync in %s\n", __FUNCTION__);
-      if (cell_group_config->spCellConfig->reconfigurationWithSync->rach_ConfigDedicated) {
-        ra->rach_ConfigDedicated = cell_group_config->spCellConfig->reconfigurationWithSync->rach_ConfigDedicated->choice.uplink;
-      }
-      mac->scc = cell_group_config->spCellConfig->reconfigurationWithSync->spCellConfigCommon;
-      mac->nr_band = *mac->scc->downlinkConfigCommon->frequencyInfoDL->frequencyBandList.list.array[0];
-      if (mac->scc_SIB) {
-        free(mac->scc_SIB);
-        mac->scc_SIB = NULL;
-      }
-      int num_slots = mac->scc->tdd_UL_DL_ConfigurationCommon->pattern1.nrofUplinkSlots;
-      if (mac->scc->tdd_UL_DL_ConfigurationCommon->pattern1.nrofUplinkSymbols > 0) {
-        num_slots++;
-      }
-      mac->state = UE_NOT_SYNC;
-      mac->ra.ra_state = RA_UE_IDLE;
-      mac->physCellId = *mac->scc->physCellId;
-      if (!get_softmodem_params()->emulate_l1) {
-        mac->synch_request.Mod_id = module_id;
-        mac->synch_request.CC_id = cc_idP;
-        mac->synch_request.synch_req.target_Nid_cell = mac->physCellId;
-        mac->if_module->synch_request(&mac->synch_request);
-      }
-      mac->ul_config_request = calloc(num_slots, sizeof(*mac->ul_config_request));
-      config_common_ue(mac, module_id, cc_idP);
-      mac->crnti = cell_group_config->spCellConfig->reconfigurationWithSync->newUE_Identity;
-      LOG_I(MAC, "Configuring CRNTI %x\n", mac->crnti);
-
-      nr_ue_init_mac(module_id);
-      if (!get_softmodem_params()->emulate_l1) {
-        mac->if_module->phy_config_request(&mac->phy_config);
-        mac->phy_config_request_sent = true;
-      }
-
-      // Setup the SSB to Rach Occasions mapping according to the config
-      build_ssb_to_ro_map(mac);
-    }
-  }
-  return 0;
+  configure_current_BWP(mac, NULL, scell_group_config);
+  // Setup the SSB to Rach Occasions mapping according to the config
+  build_ssb_to_ro_map(mac);
 }

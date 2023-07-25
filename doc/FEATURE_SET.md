@@ -271,7 +271,7 @@ The following features are valid for the gNB and the 5G-NR UE.
    - Support for 256 QAM
 *  NR-PUCCH 
    - Format 0 (2 bits, for ACK/NACK and SR)
-   - Format 2 (up to 11 bits, mainly for CSI feedback)
+   - Format 2 (mainly for CSI feedback)
 *  NR-SRS
     - SRS signal reception
     - Channel estimation (with T tracer real time monitoring)
@@ -443,8 +443,9 @@ The following features are valid for the gNB and the 5G-NR UE.
    - Support for up to 2 layers
 *  NR-PUCCH 
    - Format 0 (2 bits for ACK/NACK and SR)
-   - Format 2 (up to 11 bits, mainly for CSI feedback)
-   - Format 1, 3 and 4 present but old code never tested (need restructuring before verification)
+   - Format 2 (mainly for CSI feedback)
+   - Format 1 (limited testing)
+   - Format 3 and 4 present but old code never tested (need restructuring before verification)
 * NR-SRS
    - Generation of sequence at PHY
    - SRS signal transmission

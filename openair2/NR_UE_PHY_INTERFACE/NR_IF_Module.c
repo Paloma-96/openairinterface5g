@@ -45,7 +45,7 @@
 #include "openair2/RRC/NR_UE/rrc_vars.h"
 #include "openair2/GNB_APP/L1_nr_paramdef.h"
 #include "openair2/GNB_APP/gnb_paramdef.h"
-#include "radio/ETHERNET/USERSPACE/LIB/if_defs.h"
+#include "radio/ETHERNET/if_defs.h"
 #include <stdio.h>
 #include "openair2/GNB_APP/MACRLC_nr_paramdef.h"
 
@@ -674,6 +674,7 @@ static void fill_dci_from_dl_config(nr_downlink_indication_t*dl_ind, fapi_nr_dl_
   }
 }
 
+// This piece of code is not used in "normal" ue, but in "fapi mode"
 void check_and_process_dci(nfapi_nr_dl_tti_request_t *dl_tti_request,
                            nfapi_nr_tx_data_request_t *tx_data_request,
                            nfapi_nr_ul_dci_request_t *ul_dci_request,
@@ -734,25 +735,24 @@ void check_and_process_dci(nfapi_nr_dl_tti_request_t *dl_tti_request,
     nr_ue_dl_scheduler(&mac->dl_info);
     nr_ue_dl_indication(&mac->dl_info);
 
-    if (pthread_mutex_unlock(&mac->mutex_dl_info)) abort();
-
-    // If we filled dl_info AFTER we got the slot indication, we want to check if we should fill tx_req:
-    nr_uplink_indication_t ul_info;
-    memset(&ul_info, 0, sizeof(ul_info));
+    if (pthread_mutex_unlock(&mac->mutex_dl_info))
+      abort();
     int slots_per_frame = 20; //30 kHZ subcarrier spacing
     int slot_ahead = 2; // TODO: Make this dynamic
-    ul_info.frame_rx = frame;
-    ul_info.slot_rx = slot;
-    ul_info.slot_tx = (slot + slot_ahead) % slots_per_frame;
-    ul_info.frame_tx = (ul_info.slot_rx + slot_ahead >= slots_per_frame) ? ul_info.frame_rx + 1 : ul_info.frame_rx;
+
     if (mac->scc || mac->scc_SIB) {
-        if (is_nr_UL_slot(mac->scc ?
-                          mac->scc->tdd_UL_DL_ConfigurationCommon :
-                          mac->scc_SIB->tdd_UL_DL_ConfigurationCommon,
-                          ul_info.slot_tx,
-                          mac->frame_type) && mac->ra.ra_state != RA_SUCCEEDED) {
-            nr_ue_ul_scheduler(&ul_info);
-        }
+      if (is_nr_UL_slot(mac->scc ? mac->scc->tdd_UL_DL_ConfigurationCommon : mac->scc_SIB->tdd_UL_DL_ConfigurationCommon,
+                        (slot + slot_ahead) % slots_per_frame,
+                        mac->frame_type)
+          && mac->ra.ra_state != RA_SUCCEEDED) {
+        // If we filled dl_info AFTER we got the slot indication, we want to check if we should fill tx_req:
+        nr_uplink_indication_t ul_info = {
+            .frame_rx = frame,
+            .slot_rx = slot,
+            .slot_tx = (slot + slot_ahead) % slots_per_frame,
+            .frame_tx = (ul_info.slot_rx + slot_ahead >= slots_per_frame) ? ul_info.frame_rx + 1 : ul_info.frame_rx};
+        nr_ue_ul_scheduler(&ul_info);
+      }
     }
 }
 
@@ -1052,16 +1052,9 @@ int handle_bcch_bch(module_id_t module_id, int cc_id,
 
 }
 
-void handle_bch_failure(NR_UE_MAC_INST_t *mac)
-{
-  mac->ssb_measurements.consecutive_bch_failures++;
-  //TODO handle this properly by scheduling re-synchronization
-  AssertFatal(mac->ssb_measurements.consecutive_bch_failures < 100,
-              "Radio link failure caused by 100 consecutive PBCH detection failures.\n");
-}
-
 //  L2 Abstraction Layer
-int handle_bcch_dlsch(module_id_t module_id, int cc_id, unsigned int gNB_index, uint8_t ack_nack, uint8_t *pduP, uint32_t pdu_len){
+int handle_bcch_dlsch(module_id_t module_id, int cc_id, unsigned int gNB_index, uint8_t ack_nack, uint8_t *pduP, uint32_t pdu_len)
+{
   return nr_ue_decode_BCCH_DL_SCH(module_id, cc_id, gNB_index, ack_nack, pduP, pdu_len);
 }
 
@@ -1098,7 +1091,17 @@ int8_t handle_dlsch(nr_downlink_indication_t *dl_info, int pdu_id)
   return 0;
 }
 
-int8_t handle_csirs_measurements(module_id_t module_id, frame_t frame, int slot, fapi_nr_csirs_measurements_t *csirs_measurements) {
+void handle_rlm(rlm_t rlm_result, int frame, module_id_t module_id)
+{
+  if (rlm_result == RLM_no_monitoring)
+    return;
+  bool is_sync = rlm_result == RLM_in_sync ? true : false;
+  nr_mac_rrc_sync_ind(module_id, frame, is_sync);
+}
+
+int8_t handle_csirs_measurements(module_id_t module_id, frame_t frame, int slot, fapi_nr_csirs_measurements_t *csirs_measurements)
+{
+  handle_rlm(csirs_measurements->radiolink_monitoring, frame, module_id);
   return nr_ue_process_csirs_measurements(module_id, frame, slot, csirs_measurements);
 }
 
@@ -1129,7 +1132,9 @@ int nr_ue_ul_indication(nr_uplink_indication_t *ul_info)
   LOG_T(NR_MAC, "In %s():%d not calling scheduler mac->ra.ra_state = %d\n",
         __FUNCTION__, __LINE__, mac->ra.ra_state);
 
-  NR_TDD_UL_DL_ConfigCommon_t *tdd_UL_DL_ConfigurationCommon = mac->scc != NULL ? mac->scc->tdd_UL_DL_ConfigurationCommon : mac->scc_SIB->tdd_UL_DL_ConfigurationCommon;
+  NR_TDD_UL_DL_ConfigCommon_t *tdd_UL_DL_ConfigurationCommon =
+      mac->scc != NULL ? mac->scc->tdd_UL_DL_ConfigurationCommon
+                       : (mac->scc_SIB ? mac->scc_SIB->tdd_UL_DL_ConfigurationCommon : NULL);
   if (mac->phy_config_request_sent && is_nr_UL_slot(tdd_UL_DL_ConfigurationCommon, ul_info->slot_tx, mac->frame_type))
     nr_ue_ul_scheduler(ul_info);
 
@@ -1144,7 +1149,6 @@ int nr_ue_dl_indication(nr_downlink_indication_t *dl_info)
   uint32_t ret_mask = 0x0;
   module_id_t module_id = dl_info->module_id;
   NR_UE_MAC_INST_t *mac = get_mac_inst(module_id);
-  fapi_nr_dl_config_request_t *dl_config = get_dl_config_request(mac, dl_info->slot);
 
   if ((!dl_info->dci_ind && !dl_info->rx_ind)) {
     // UL indication to schedule DCI reception
@@ -1163,7 +1167,8 @@ int nr_ue_dl_indication(nr_downlink_indication_t *dl_info)
                                 dl_info->frame,
                                 dl_info->slot,
                                 dl_info->dci_ind->dci_list+i);
-
+        if (ret < 0)
+          continue;
         fapi_nr_dci_indication_pdu_t *dci_index = dl_info->dci_ind->dci_list+i;
 
         /* The check below filters out UL_DCIs (format 7) which are being processed as DL_DCIs. */
@@ -1176,12 +1181,11 @@ int nr_ue_dl_indication(nr_downlink_indication_t *dl_info)
         LOG_T(NR_MAC, "Setting harq_pid = %d and dci_index = %d (based on format)\n", g_harq_pid, dci_index->dci_format);
 
         ret_mask |= (ret << FAPI_NR_DCI_IND);
-        if (ret >= 0) {
-          AssertFatal( nr_ue_if_module_inst[module_id] != NULL, "IF module is NULL!\n" );
-          AssertFatal( nr_ue_if_module_inst[module_id]->scheduled_response != NULL, "scheduled_response is NULL!\n" );
-          fill_scheduled_response(&scheduled_response, dl_config, NULL, NULL, dl_info->module_id, dl_info->cc_id, dl_info->frame, dl_info->slot, dl_info->phy_data);
-          nr_ue_if_module_inst[module_id]->scheduled_response(&scheduled_response);
-        }
+        AssertFatal( nr_ue_if_module_inst[module_id] != NULL, "IF module is NULL!\n" );
+        AssertFatal( nr_ue_if_module_inst[module_id]->scheduled_response != NULL, "scheduled_response is NULL!\n" );
+        fapi_nr_dl_config_request_t *dl_config = get_dl_config_request(mac, dl_info->slot);
+        fill_scheduled_response(&scheduled_response, dl_config, NULL, NULL, dl_info->module_id, dl_info->cc_id, dl_info->frame, dl_info->slot, dl_info->phy_data);
+        nr_ue_if_module_inst[module_id]->scheduled_response(&scheduled_response);
         memset(def_dci_pdu_rel15, 0, sizeof(*def_dci_pdu_rel15));
       }
       dl_info->dci_ind = NULL;
@@ -1198,6 +1202,9 @@ int nr_ue_dl_indication(nr_downlink_indication_t *dl_info)
 
         switch(rx_indication_body.pdu_type){
           case FAPI_NR_RX_PDU_TYPE_SSB:
+            handle_rlm(rx_indication_body.ssb_pdu.radiolink_monitoring,
+                       dl_info->frame,
+                       dl_info->module_id);
             if(rx_indication_body.ssb_pdu.decoded_pdu) {
               handle_ssb_meas(mac,
                               rx_indication_body.ssb_pdu.ssb_index,
@@ -1210,8 +1217,6 @@ int nr_ue_dl_indication(nr_downlink_indication_t *dl_info)
                                            rx_indication_body.ssb_pdu.ssb_start_subcarrier,
                                            rx_indication_body.ssb_pdu.cell_id)) << FAPI_NR_RX_PDU_TYPE_SSB;
             }
-            else
-              handle_bch_failure(mac);
             break;
           case FAPI_NR_RX_PDU_TYPE_SIB:
             ret_mask |= (handle_bcch_dlsch(dl_info->module_id,
@@ -1225,6 +1230,10 @@ int nr_ue_dl_indication(nr_downlink_indication_t *dl_info)
             break;
           case FAPI_NR_RX_PDU_TYPE_RAR:
             ret_mask |= (handle_dlsch(dl_info, i)) << FAPI_NR_RX_PDU_TYPE_RAR;
+            if (!dl_info->rx_ind->rx_indication_body[i].pdsch_pdu.ack_nack)
+              LOG_W(PHY, "Received a RAR-Msg2 but LDPC decode failed\n");
+            else
+              LOG_I(PHY, "RAR-Msg2 decoded\n");
             break;
           case FAPI_NR_CSIRS_IND:
             ret_mask |= (handle_csirs_measurements(dl_info->module_id,

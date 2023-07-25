@@ -97,6 +97,9 @@ void freq2time(uint16_t ofdm_symbol_size,
     case 4096:
       idft(IDFT_4096, freq_signal, time_signal, 1);
       break;
+    case 6144:
+      idft(IDFT_6144, freq_signal, time_signal, 1);
+      break;
     case 8192:
       idft(IDFT_8192, freq_signal, time_signal, 1);
       break;
@@ -286,7 +289,8 @@ int nr_pusch_channel_estimation(PHY_VARS_gNB *gNB,
 #ifdef DEBUG_PUSCH
           re_offset = (k0 + (n << 2) + (k_line << 1)) % symbolSize;
           c16_t *rxF = &rxdataF[soffset + re_offset];
-          printf("ch -> (%4d,%4d), ch_delay_comp -> (%4d,%4d)\n", ul_ls_est[k].r, ul_ls_est[k].i, ch16.r, ch16.i);
+          printf("pilot %4d: pil -> (%6d,%6d), rxF -> (%4d,%4d), ch -> (%4d,%4d)\n",
+                 pilot_cnt, pil->r, pil->i, rxF->r, rxF->i, ch.r, ch.i);
 #endif
 
           if (pilot_cnt == 0) {
@@ -819,11 +823,11 @@ int nr_srs_channel_estimation(const PHY_VARS_gNB *gNB,
           } else if(subcarrier < K_TC) { // Start of OFDM symbol case
             // filt8_start is {12288,8192,4096,0,0,0,0,0}
             srs_estimated_channel16 = (int16_t *)&srs_est[subcarrier];
-            short *filter = mem_offset==0 ? filt8_start:filt8_start_shift2;
+            const short *filter = mem_offset == 0 ? filt8_start : filt8_start_shift2;
             multadd_real_vector_complex_scalar(filter, ls_estimated, srs_estimated_channel16, 8);
           } else if((subcarrier+K_TC)>=frame_parms->ofdm_symbol_size || k == (M_sc_b_SRS-1)) { // End of OFDM symbol or last subcarrier cases
             // filt8_end is {4096,8192,12288,16384,0,0,0,0}
-            short *filter = mem_offset==0 || k == (M_sc_b_SRS-1) ? filt8_end:filt8_end_shift2;
+            const short *filter = mem_offset == 0 || k == (M_sc_b_SRS - 1) ? filt8_end : filt8_end_shift2;
             multadd_real_vector_complex_scalar(filter, ls_estimated, srs_estimated_channel16, 8);
           } else if(k%2 == 1) { // 1st middle case
             // filt8_middle2 is {4096,8192,8192,8192,4096,0,0,0}
