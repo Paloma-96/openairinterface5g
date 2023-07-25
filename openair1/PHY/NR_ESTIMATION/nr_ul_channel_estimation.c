@@ -942,6 +942,8 @@ int nr_srs_channel_estimation(const PHY_VARS_gNB *gNB,
         printf("[PALOMA HACK] SRS TOA = [%d], Frame = %d, Slot = %d, USRP=%d \n", srs_ul_toa_array[ant], frame, slot, ant);
       }
 
+      //printf("[PALOMA HACK] SDR address = %s\n", gNB->RU_list[0]->openair0_cfg.my_addr);
+
     } // for (int p_index = 0; p_index < N_ap; p_index++)
   } // for (int ant = 0; ant < frame_parms->nb_antennas_rx; ant++)
 
@@ -1006,7 +1008,7 @@ int nr_srs_channel_estimation(const PHY_VARS_gNB *gNB,
       srs_ul_toa_snr_array[ant] = *snr;
 
       if (temp < frame_parms->nb_antennas_rx) {
-        printf("[PALOMA HACK] signal power=%u, noise_power=%u, SNR=%i dB, USRP=%d\n", signal_power, noise_power, srs_ul_toa_snr_array[ant], ant);
+        //printf("[PALOMA HACK] signal power=%u, noise_power=%u, SNR=%i dB, USRP=%d\n", signal_power, noise_power, srs_ul_toa_snr_array[ant], ant);
         temp = temp + 1;
       }
 

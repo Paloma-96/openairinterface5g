@@ -367,6 +367,7 @@ ToaM* get_toa()
   }
   // Fill the array with values
   for (size_t i = 0; i < NUMBER_USRP_RU; i++) {
+      printf("[PALOMA HACK] set TOA[%d] = %d\n", i, srs_ul_toa_array[i]);
       toa_m->toa_val[i] = srs_ul_toa_array[i];
   }
   toa_m->snr = malloc(sizeof(int32_t) * NUMBER_USRP_RU);
@@ -379,7 +380,8 @@ ToaM* get_toa()
   }
   // Fill the array with values
   for (size_t i = 0; i < NUMBER_USRP_RU; i++) {
-      toa_m->snr[i] = srs_ul_toa_snr_array[i];
+
+    toa_m->snr[i] = srs_ul_toa_snr_array[i];
   }
 
 
