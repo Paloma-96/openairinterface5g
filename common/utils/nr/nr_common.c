@@ -36,12 +36,12 @@
 
 const char *duplex_mode[]={"FDD","TDD"};
 
-int tables_5_3_2[5][12] = {
-  {25, 52, 79, 106, 133, 160, 216, 270, -1, -1, -1, -1}, // 15 FR1
-  {11, 24, 38, 51, 65, 78, 106, 133, 162, 217, 245, 273},// 30 FR1
-  {-1, 11, 18, 24, 31, 38, 51, 65, 79, 107, 121, 135},   // 60 FR1
-  {66, 132, 264, -1 , -1, -1, -1, -1, -1, -1, -1, -1},   // 60 FR2
-  {32, 66, 132, 264, -1, -1, -1, -1, -1, -1, -1, -1}     // 120FR2
+static const int tables_5_3_2[5][12] = {
+    {25, 52, 79, 106, 133, 160, 216, 270, -1, -1, -1, -1}, // 15 FR1
+    {11, 24, 38, 51, 65, 78, 106, 133, 162, 217, 245, 273}, // 30 FR1
+    {-1, 11, 18, 24, 31, 38, 51, 65, 79, 107, 121, 135}, // 60 FR1
+    {66, 132, 264, -1, -1, -1, -1, -1, -1, -1, -1, -1}, // 60 FR2
+    {32, 66, 132, 264, -1, -1, -1, -1, -1, -1, -1, -1} // 120FR2
 };
 
 int get_supported_band_index(int scs, int band, int n_rbs)
@@ -240,11 +240,16 @@ int NRRIV2PRBOFFSET(int locationAndBandwidth,int N_RB) {
 }
 
 /* TS 38.214 ch. 6.1.2.2.2 - Resource allocation type 1 for DL and UL */
-int PRBalloc_to_locationandbandwidth0(int NPRB,int RBstart,int BWPsize) {
-  AssertFatal(NPRB>0 && (NPRB + RBstart <= BWPsize),"Illegal NPRB/RBstart Configuration (%d,%d) for BWPsize %d\n",NPRB,RBstart,BWPsize);
+int PRBalloc_to_locationandbandwidth0(int NPRB, int RBstart, int BWPsize)
+{
+  AssertFatal(NPRB>0 && (NPRB + RBstart <= BWPsize),
+              "Illegal NPRB/RBstart Configuration (%d,%d) for BWPsize %d\n",
+              NPRB, RBstart, BWPsize);
 
-  if (NPRB <= 1+(BWPsize>>1)) return(BWPsize*(NPRB-1)+RBstart);
-  else                        return(BWPsize*(BWPsize+1-NPRB) + (BWPsize-1-RBstart));
+  if (NPRB <= 1 + (BWPsize >> 1))
+    return (BWPsize * (NPRB - 1) + RBstart);
+  else
+    return (BWPsize * (BWPsize + 1 - NPRB) + (BWPsize - 1 - RBstart));
 }
 
 int PRBalloc_to_locationandbandwidth(int NPRB,int RBstart) {

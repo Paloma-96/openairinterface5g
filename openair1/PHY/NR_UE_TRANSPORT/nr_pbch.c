@@ -380,7 +380,8 @@ unsigned char sign(int8_t x) {
 }
 */
 
-uint8_t pbch_deinterleaving_pattern[32] = {28,0,31,30,7,29,25,27,5,8,24,9,10,11,12,13,1,4,3,14,15,16,17,2,26,18,19,20,21,22,6,23};
+const uint8_t pbch_deinterleaving_pattern[32] = {28, 0, 31, 30, 7,  29, 25, 27, 5,  8,  24, 9,  10, 11, 12, 13,
+                                                 1,  4, 3,  14, 15, 16, 17, 2,  26, 18, 19, 20, 21, 22, 6,  23};
 
 int nr_rx_pbch(PHY_VARS_NR_UE *ue,
                UE_nr_rxtx_proc_t *proc,
@@ -389,7 +390,6 @@ int nr_rx_pbch(PHY_VARS_NR_UE *ue,
                NR_DL_FRAME_PARMS *frame_parms,
                uint8_t i_ssb,
                MIMO_mode_t mimo_mode,
-               nr_phy_data_t *phy_data,
                fapiPbch_t *result,
                c16_t rxdataF[][ue->frame_parms.samples_per_slot_wCP])
 {
@@ -515,7 +515,7 @@ int nr_rx_pbch(PHY_VARS_NR_UE *ue,
   uint16_t number_pdus = 1;
 
   if(decoderState) {
-    nr_fill_dl_indication(&dl_indication, NULL, &rx_ind, proc, ue, phy_data);
+    nr_fill_dl_indication(&dl_indication, NULL, &rx_ind, proc, ue, NULL);
     nr_fill_rx_indication(&rx_ind, FAPI_NR_RX_PDU_TYPE_SSB, ue, NULL, NULL, number_pdus, proc, NULL, NULL);
     if (ue->if_inst && ue->if_inst->dl_indication)
       ue->if_inst->dl_indication(&dl_indication);
@@ -569,12 +569,6 @@ int nr_rx_pbch(PHY_VARS_NR_UE *ue,
   if (frame_parms->half_frame_bit)
   ue->symbol_offset += (frame_parms->slots_per_frame>>1)*frame_parms->symbols_per_slot;
 
-  uint8_t frame_number_4lsb = 0;
-
-  for (int i=0; i<4; i++)
-    frame_number_4lsb |= ((result->xtra_byte>>i)&1)<<(3-i);
-  
-  proc->decoded_frame_rx = frame_number_4lsb;
 #ifdef DEBUG_PBCH
   printf("xtra_byte %x payload %x\n", xtra_byte, payload);
 
@@ -585,7 +579,7 @@ int nr_rx_pbch(PHY_VARS_NR_UE *ue,
 
 #endif
 
-  nr_fill_dl_indication(&dl_indication, NULL, &rx_ind, proc, ue, phy_data);
+  nr_fill_dl_indication(&dl_indication, NULL, &rx_ind, proc, ue, NULL);
   nr_fill_rx_indication(&rx_ind, FAPI_NR_RX_PDU_TYPE_SSB, ue, NULL, NULL, number_pdus, proc, (void *)result, NULL);
 
   if (ue->if_inst && ue->if_inst->dl_indication)

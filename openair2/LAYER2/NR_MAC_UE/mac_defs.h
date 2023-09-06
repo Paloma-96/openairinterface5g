@@ -422,8 +422,6 @@ typedef struct ssb_list_info {
 /*!\brief Top level UE MAC structure */
 typedef struct {
   NR_UE_L2_STATE_t state;
-  NR_ServingCellConfigCommon_t    *scc;
-  NR_ServingCellConfigCommonSIB_t *scc_SIB;
   NR_CellGroupConfig_t            *cg;
   int                             servCellIndex;
   NR_CSI_ReportConfig_t           *csirc;
@@ -445,6 +443,9 @@ typedef struct {
 
   NR_UE_DL_BWP_t current_DL_BWP;
   NR_UE_UL_BWP_t current_UL_BWP;
+  NR_BWP_DownlinkCommon_t *bwp_dlcommon;
+  NR_BWP_UplinkCommon_t *bwp_ulcommon;
+
   NR_UL_TIME_ALIGNMENT_t ul_time_alignment;
 
   NR_SearchSpace_t *otherSI_SS;
@@ -454,6 +455,8 @@ typedef struct {
   NR_ControlResourceSet_t *coreset0;
   NR_SearchSpace_t *BWP_searchspaces[FAPI_NR_MAX_SS];
   NR_SearchSpace_t *search_space_zero;
+
+  NR_TDD_UL_DL_ConfigCommon_t *tdd_UL_DL_ConfigurationCommon;
 
   bool phy_config_request_sent;
   frame_type_t frame_type;
@@ -477,6 +480,8 @@ typedef struct {
   RA_config_t ra;
   /// SSB index from MIB decoding
   uint8_t mib_ssb;
+  uint32_t mib_additional_bits;
+  int mib_frame;
 
   nr_csi_report_t csi_report_template[MAX_CSI_REPORTCONFIG];
 
@@ -506,10 +511,14 @@ typedef struct {
   /// PHR
   uint8_t PHR_reporting_active;
 
+  int dmrs_TypeA_Position;
+  NR_P_Max_t *p_Max;
+
   NR_Type0_PDCCH_CSS_config_t type0_PDCCH_CSS_config;
   frequency_range_t frequency_range;
   uint16_t nr_band;
   uint8_t ssb_subcarrier_offset;
+  int ssb_start_subcarrier;
 
   NR_SSB_meas_t ssb_measurements;
 

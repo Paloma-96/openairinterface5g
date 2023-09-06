@@ -74,7 +74,9 @@ fifo_dump_emos_UE emos_dump_UE;
 #include "intertask_interface.h"
 #include "T.h"
 
-unsigned int gain_table[31] = {100,112,126,141,158,178,200,224,251,282,316,359,398,447,501,562,631,708,794,891,1000,1122,1258,1412,1585,1778,1995,2239,2512,2818,3162};
+static const unsigned int gain_table[31] = {100,  112,  126,  141,  158,  178,  200,  224,  251, 282,  316,
+                                            359,  398,  447,  501,  562,  631,  708,  794,  891, 1000, 1122,
+                                            1258, 1412, 1585, 1778, 1995, 2239, 2512, 2818, 3162};
 
 void nr_fill_dl_indication(nr_downlink_indication_t *dl_ind,
                            fapi_nr_dci_indication_t *dci_ind,
@@ -361,7 +363,6 @@ static int nr_ue_pbch_procedures(PHY_VARS_NR_UE *ue,
                                  UE_nr_rxtx_proc_t *proc,
                                  int estimateSz,
                                  struct complex16 dl_ch_estimates[][estimateSz],
-                                 nr_phy_data_t *phy_data,
                                  c16_t rxdataF[][ue->frame_parms.samples_per_slot_wCP]) {
 
   int ret = 0;
@@ -382,7 +383,6 @@ static int nr_ue_pbch_procedures(PHY_VARS_NR_UE *ue,
                    &ue->frame_parms,
                    (ue->frame_parms.ssb_index)&7,
                    SISO,
-                   phy_data,
                    &result,
                    rxdataF);
 
@@ -904,7 +904,7 @@ void pbch_pdcch_processing(PHY_VARS_NR_UE *ue,
           if(ssb_index == fp->ssb_index) {
 
             LOG_D(PHY," ------  Decode MIB: frame.slot %d.%d ------  \n", frame_rx%1024, nr_slot_rx);
-            const int pbchSuccess = nr_ue_pbch_procedures(ue, proc, estimateSz, dl_ch_estimates, phy_data, rxdataF);
+            const int pbchSuccess = nr_ue_pbch_procedures(ue, proc, estimateSz, dl_ch_estimates, rxdataF);
 
             if (ue->no_timing_correction==0 && pbchSuccess == 0) {
               LOG_D(PHY,"start adjust sync slot = %d no timing %d\n", nr_slot_rx, ue->no_timing_correction);
@@ -945,12 +945,7 @@ void pbch_pdcch_processing(PHY_VARS_NR_UE *ue,
                         (j%fp->symbols_per_slot),
                         rxdataF);
           }
-          nr_prs_channel_estimation(rsc_id,
-                                    i,
-                                    ue,
-                                    proc,
-                                    fp,
-                                    rxdataF);
+          nr_prs_channel_estimation(gNB_id, rsc_id, i, ue, proc, fp, rxdataF);
         }
       } // for i
     } // for rsc_id
